@@ -66,16 +66,6 @@ export const MENU_ITEMS = [
     ]
   },
   { 
-    id: 'financial', 
-    labelKey: 'financial', 
-    icon: CreditCard,
-    children: [
-      { id: 'payments', labelKey: 'payments', icon: CreditCard, path: 'payments' },
-      { id: 'invoices', labelKey: 'invoices', icon: FileText, path: 'invoices' },
-      { id: 'commissions', labelKey: 'commissions', icon: TrendingUp, path: 'commissions' }
-    ]
-  },
-  { 
     id: 'reports', 
     labelKey: 'reportsAnalytics', 
     icon: BarChart3,
