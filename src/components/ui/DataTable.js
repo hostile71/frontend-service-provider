@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, Filter, Plus, Eye, Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { filterData, getFieldValue } from '../../utils/helpers';
@@ -86,6 +86,54 @@ const DataTable = ({
 
   const searchTerm = searchTerms[activeTab] || '';
   const filteredData = filterData(data, searchTerm, searchFields);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [itemsPerPage, setItemsPerPage] = React.useState(10);
+  
+  // Calculate pagination
+  const totalItems = filteredData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+  
+  // Reset to first page when search term changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+  
+  // Generate page numbers for pagination display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    const halfVisible = Math.floor(maxVisiblePages / 2);
+    
+    let startPage = Math.max(1, currentPage - halfVisible);
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust start page if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
+  };
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+  };
 
   const renderCellContent = (item, column, value, fieldKey) => {
     // Custom cell renderer
@@ -176,7 +224,7 @@ const DataTable = ({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredData.map((item, index) => (
+            {paginatedData.map((item, index) => (
               <tr key={index} className="hover:bg-gray-50">
                 {columns.map((column, cellIndex) => {
                   const value = getFieldValue(item, column, t);
@@ -223,6 +271,97 @@ const DataTable = ({
           </tbody>
         </table>
       </div>
+      
+      {/* Modern Pagination */}
+      {totalItems > 0 && (
+        <div className="px-4 py-4 border-t border-gray-200 bg-white">
+          <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+            {/* Results info and per-page selector */}
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-700">
+                Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-700">Show:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm text-gray-700">per page</span>
+              </div>
+            </div>
+            
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center space-x-1">
+                {/* First page */}
+                <button
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="First page"
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+                
+                {/* Previous page */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                
+                {/* Page numbers */}
+                <div className="flex items-center space-x-1">
+                  {getPageNumbers().map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Next page */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Next page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                
+                {/* Last page */}
+                <button
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Last page"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
