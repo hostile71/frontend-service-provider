@@ -298,4 +298,57 @@ export const mockBookings = [
     duration: '1 hour',
     rating: null
   },
+  // add more 10 bookings
+  {
+    id: 4,
+    customer: 'Laila Saeed',
+    provider: 'Glamour Salon',
+    service: 'Haircut & Styling',
+    date: '2024-08-18',
+    time: '11:00 AM',
+    location: 'Muscat, Al Azaiba',
+    status: STATUS_TYPES.COMPLETED,
+    amount: 30, 
+    duration: '1 hour',
+    rating: 4.5
+  },
+  {
+    id: 5,
+    customer: 'Khalid Yousuf',
+    provider: 'AutoCare',
+    service: 'Car Oil Change',  
+    date: '2024-08-19',
+    time: '3:00 PM',
+    location: 'Muscat, Al Khuwair',
+    status: STATUS_TYPES.CANCELLED,
+    amount: 60,
+    duration: '30 minutes',
+    rating: null
+  },
+  {
+    id: 6,
+    customer: 'Aisha Nasser',
+    provider: 'Relax Spa',
+    service: 'Massage Therapy',
+    date: '2024-08-20',
+    time: '1:00 PM',
+    location: 'Muscat, Al Khuwair',
+    status: STATUS_TYPES.PENDING,
+    amount: 80,
+    duration: '1 hour',
+    rating: null
+  },
+  {
+    id: 7,
+    customer: 'Faisal Ahmed',
+    provider: 'CleanCorp',
+    service: 'Window Cleaning',
+    date: '2024-08-21',
+    time: '10:00 AM',
+    location: 'Muscat, Al Azaiba',
+    status: STATUS_TYPES.COMPLETED,
+    amount: 30,
+    duration: '1 hour',
+    rating: 4.5
+  },
 ];
