@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/frontend-service-provider/static/css/main.b927f48a.css",
+    "main.js": "/frontend-service-provider/static/js/main.69743c0a.js",
+    "index.html": "/frontend-service-provider/index.html",
+    "main.b927f48a.css.map": "/frontend-service-provider/static/css/main.b927f48a.css.map",
+    "main.69743c0a.js.map": "/frontend-service-provider/static/js/main.69743c0a.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.b927f48a.css",
+    "static/js/main.69743c0a.js"
+  ]
+}
