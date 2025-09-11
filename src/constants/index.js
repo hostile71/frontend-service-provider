@@ -52,7 +52,7 @@ export const MENU_ITEMS = [
     children: [
       { id: 'service-list', labelKey: 'allServices', icon: Briefcase, path: 'services' },
       { id: 'categories', labelKey: 'categories', icon: Package, path: 'categories' },
-      { id: 'service-requests', labelKey: 'serviceRequests', icon: FileText, path: 'service-requests' }
+      // { id: 'service-requests', labelKey: 'serviceRequests', icon: FileText, path: 'service-requests' }
     ]
   },
   { 
@@ -76,16 +76,16 @@ export const MENU_ITEMS = [
       { id: 'service-analytics', labelKey: 'serviceAnalytics', icon: FileBarChart, path: 'service-analytics' }
     ]
   },
-  { 
-    id: 'content', 
-    labelKey: 'contentManagement', 
-    icon: FileText,
-    children: [
-      { id: 'pages', labelKey: 'pages', icon: FileText, path: 'content' },
-      { id: 'banners', labelKey: 'banners', icon: Palette, path: 'banners' },
-      { id: 'notifications', labelKey: 'notifications', icon: Bell, path: 'notifications' }
-    ]
-  },
+  // { 
+  //   id: 'content', 
+  //   labelKey: 'contentManagement', 
+  //   icon: FileText,
+  //   children: [
+  //     { id: 'pages', labelKey: 'pages', icon: FileText, path: 'content' },
+  //     { id: 'banners', labelKey: 'banners', icon: Palette, path: 'banners' },
+  //     { id: 'notifications', labelKey: 'notifications', icon: Bell, path: 'notifications' }
+  //   ]
+  // },
   { 
     id: 'system', 
     labelKey: 'systemSettings', 
