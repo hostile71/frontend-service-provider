@@ -153,8 +153,8 @@ export const THEME_CONFIGS = {
 
 export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState(() => {
-    // Get theme from localStorage or default
-    return localStorage.getItem('theme') || THEMES.DEFAULT;
+    // Get theme from localStorage, take this theme if it is exist or use default
+    return localStorage.getItem('theme') ? THEME_CONFIGS[localStorage.getItem('theme')] ? localStorage.getItem('theme') : THEMES.DEFAULT : THEMES.DEFAULT;
   });
 
   const themeConfig = THEME_CONFIGS[currentTheme];
