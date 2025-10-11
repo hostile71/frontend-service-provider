@@ -15,6 +15,7 @@ export const translations = {
     allBookings: "All Bookings",
     pendingBookings: "Pending Bookings",
     completedBookings: "Completed Bookings",
+    financialManagement: "Financial Management",
     financial: "Financial",
     payments: "Payments",
     invoices: "Invoices",

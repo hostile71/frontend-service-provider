@@ -91,13 +91,17 @@ export const getFieldValue = (item, columnName, t) => {
     'End Date': 'endDate'
   };
 
+  if(!item || !columnName) return null;
+
+  console.log('Getting field value for column:', columnName, 'Item:', item);
+
   const fieldKey = fieldMappings[columnName];
   if (fieldKey && item[fieldKey] !== undefined) {
     return item[fieldKey];
   }
   
   // Fallback: try to match field directly if no mapping found
-  const directKey = columnName.toLowerCase().replace(/\s+/g, '');
+  const directKey = columnName?.toLowerCase()?.replace(/\s+/g, '');
   if (item[directKey] !== undefined) {
     return item[directKey];
   }

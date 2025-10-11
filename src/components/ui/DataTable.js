@@ -228,7 +228,7 @@ const DataTable = ({
               <tr key={index} className="hover:bg-gray-50">
                 {columns.map((column, cellIndex) => {
                   const value = getFieldValue(item, column, t);
-                  const fieldKey = column.toLowerCase().replace(/\s+/g, '');
+                  const fieldKey = column?.toLowerCase()?.replace(/\s+/g, '');
                   
                   return (
                     <td key={cellIndex} className={`px-4 md:px-6 py-4 ${isRTL ? 'text-right' : 'text-left'}`}>

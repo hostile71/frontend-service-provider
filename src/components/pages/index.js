@@ -6,6 +6,7 @@ export { default as Categories } from './Categories';
 export { default as BookingManagement } from './BookingManagement';
 export { default as Reports } from './Reports';
 export { default as Settings } from './Settings';
+export { default as AdminUsers } from './AdminUsers';
 
 // New submenu pages
 export { default as ServiceRequests } from './ServiceRequests';

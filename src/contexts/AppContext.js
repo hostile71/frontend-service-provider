@@ -11,7 +11,6 @@ export const useAppContext = () => {
 };
 
 export const AppProvider = ({ children }) => {
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerms, setSearchTerms] = useState({});
@@ -45,8 +44,6 @@ export const AppProvider = ({ children }) => {
   };
 
   const value = {
-    activeTab,
-    setActiveTab,
     sidebarCollapsed,
     setSidebarCollapsed,
     sidebarOpen,

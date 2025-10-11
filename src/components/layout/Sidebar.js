@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -7,9 +8,8 @@ import { MENU_ITEMS } from '../../constants';
 
 const Sidebar = () => {
   const { t, isRTL } = useLocalization();
+  const location = useLocation();
   const { 
-    activeTab, 
-    setActiveTab, 
     sidebarCollapsed, 
     setSidebarCollapsed, 
     sidebarOpen, 
@@ -31,26 +31,18 @@ const Sidebar = () => {
     };
   }, []);
 
-  const handleMenuClick = (item) => {
-    if (item.children) {
-      // If it's a parent menu with children, toggle expansion
-      toggleMenu(item.id);
-    } else {
-      // If it's a direct menu item or child item, set as active
-      setActiveTab(item.path || item.id);
-    }
-  };
-
   const renderMenuItem = (item, isChild = false) => {
     const Icon = item.icon;
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedMenus[item.id];
-    const isActive = activeTab === (item.path || item.id);
+    const itemPath = item.path;
+    const isActive = location.pathname === itemPath;
     
     // Check if any child is active to highlight parent
-    const isChildActive = hasChildren && item.children.some(child => 
-      activeTab === (child.path || child.id)
-    );
+    const isChildActive = hasChildren && item.children.some(child => {
+      const childPath = child.path;
+      return location.pathname === childPath;
+    });
     const shouldHighlight = isActive || isChildActive;
 
     const handleMouseEnter = (event) => {
@@ -78,35 +70,57 @@ const Sidebar = () => {
       }
     };
 
+    const commonClasses = `sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
+      shouldHighlight 
+        ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
+        : 'text-theme-text-secondary hover:text-theme-text'
+    } ${sidebarCollapsed ? 'justify-center' : ''} ${isChild ? 'pl-8' : ''}`;
+
+    const content = (
+      <>
+        <Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : (isRTL ? 'ml-3' : 'mr-3')}`} />
+        {!sidebarCollapsed && (
+          <>
+            <span className="truncate flex-1">{t(item.labelKey)}</span>
+            {hasChildren && (
+              <div className={`${isRTL ? 'mr-2' : 'ml-2'}`}>
+                {isExpanded ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </>
+    );
+
     return (
       <div key={item.id} className="relative">
-        <button
-          onClick={() => handleMenuClick(item)}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
-            shouldHighlight 
-              ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
-              : 'text-theme-text-secondary hover:text-theme-text'
-          } ${sidebarCollapsed ? 'justify-center' : ''} ${isChild ? 'pl-8' : ''}`}
-          title={sidebarCollapsed ? t(item.labelKey) : ''}
-        >
-          <Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : (isRTL ? 'ml-3' : 'mr-3')}`} />
-          {!sidebarCollapsed && (
-            <>
-              <span className="truncate flex-1">{t(item.labelKey)}</span>
-              {hasChildren && (
-                <div className={`${isRTL ? 'mr-2' : 'ml-2'}`}>
-                  {isExpanded ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </button>
+        {hasChildren ? (
+          // Parent menu item with children - use button for toggle
+          <button
+            onClick={() => toggleMenu(item.id)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            className={commonClasses}
+            title={sidebarCollapsed ? t(item.labelKey) : ''}
+          >
+            {content}
+          </button>
+        ) : (
+          // Direct menu item - use Link for navigation
+          <Link
+            to={itemPath}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            className={commonClasses}
+            title={sidebarCollapsed ? t(item.labelKey) : ''}
+          >
+            {content}
+          </Link>
+        )}
         
         {/* Render children if expanded and not collapsed */}
         {hasChildren && isExpanded && !sidebarCollapsed && (
@@ -159,24 +173,18 @@ const Sidebar = () => {
         <nav className="mt-4 overflow-y-auto h-full pb-20">
           {MENU_ITEMS.map((item) => (
             <div key={item.id}>
-              <button
-                onClick={() => {
-                  if (item.children) {
-                    toggleMenu(item.id);
-                  } else {
-                    setActiveTab(item.path || item.id);
-                    setSidebarOpen(false);
-                  }
-                }}
-                className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
-                  (activeTab === (item.path || item.id) || (item.children && item.children.some(child => activeTab === (child.path || child.id))))
-                    ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
-                    : 'text-theme-text-secondary hover:text-theme-text'
-                }`}
-              >
-                <item.icon className={`w-5 h-5 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                <span className="truncate flex-1">{t(item.labelKey)}</span>
-                {item.children && (
+              {item.children ? (
+                // Parent menu item with children - use button for toggle
+                <button
+                  onClick={() => toggleMenu(item.id)}
+                  className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
+                    (location.pathname === item.path || (item.children && item.children.some(child => location.pathname === child.path)))
+                      ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
+                      : 'text-theme-text-secondary hover:text-theme-text'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 ${isRTL ? 'ml-3' : 'mr-3'}`} />
+                  <span className="truncate flex-1">{t(item.labelKey)}</span>
                   <div className={`${isRTL ? 'mr-2' : 'ml-2'}`}>
                     {expandedMenus[item.id] ? (
                       <ChevronUp className="w-4 h-4" />
@@ -184,30 +192,44 @@ const Sidebar = () => {
                       <ChevronDown className="w-4 h-4" />
                     )}
                   </div>
-                )}
-              </button>
+                </button>
+              ) : (
+                // Direct menu item - use Link for navigation
+                <Link
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
+                    location.pathname === item.path
+                      ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
+                      : 'text-theme-text-secondary hover:text-theme-text'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 ${isRTL ? 'ml-3' : 'mr-3'}`} />
+                  <span className="truncate flex-1">{t(item.labelKey)}</span>
+                </Link>
+              )}
               
               {/* Mobile children */}
               {item.children && expandedMenus[item.id] && (
                 <div className="bg-theme-bg">
                   {item.children.map(child => (
-                    <button
+                    <Link
                       key={child.id}
+                      to={child.path}
                       onClick={() => {
-                        setActiveTab(child.path || child.id);
                         // Keep the parent menu expanded to show it's active
                         // Don't close the sidebar immediately to show the selection
                         setTimeout(() => setSidebarOpen(false), 100);
                       }}
                       className={`sidebar-menu-item w-full flex items-center px-8 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
-                        activeTab === (child.path || child.id)
+                        location.pathname === child.path
                           ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
                           : 'text-theme-text-secondary hover:text-theme-text'
                       }`}
                     >
                       <child.icon className={`w-4 h-4 ${isRTL ? 'ml-3' : 'mr-3'}`} />
                       {t(child.labelKey)}
-                    </button>
+                    </Link>
                   ))}
                 </div>
               )}
