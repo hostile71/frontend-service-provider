@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   Menu, 
   Globe, 
@@ -15,8 +16,8 @@ import { MENU_ITEMS, LANGUAGES } from '../../constants';
 const Header = () => {
   const { t, currentLanguage, changeLanguage, isRTL } = useLocalization();
   const { themeConfig } = useTheme();
+  const location = useLocation();
   const { 
-    activeTab, 
     setSidebarOpen, 
     showProfileMenu, 
     setShowProfileMenu, 
@@ -24,25 +25,27 @@ const Header = () => {
   } = useAppContext();
 
   const getPageTitle = () => {
-    if (activeTab === 'dashboard') return t('dashboardOverview');
+    const currentPath = location.pathname;
     
-    // Find the menu item or child item that matches the active tab
+    if (currentPath === '/' || currentPath === '/dashboard') return t('dashboardOverview');
+    
+    // Find the menu item or child item that matches the current path
     for (const menuItem of MENU_ITEMS) {
-      if (menuItem.path === activeTab || menuItem.id === activeTab) {
+      if (menuItem.path === currentPath) {
         return t(menuItem.labelKey);
       }
       
       if (menuItem.children) {
         for (const child of menuItem.children) {
-          if (child.path === activeTab || child.id === activeTab) {
+          if (child.path === currentPath) {
             return t(child.labelKey);
           }
         }
       }
     }
     
-    // Fallback to the activeTab value
-    return activeTab;
+    // Fallback to the path value
+    return currentPath.substring(1); // remove leading slash
   };
 
   return (
