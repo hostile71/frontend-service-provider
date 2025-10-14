@@ -41,6 +41,13 @@ export const translations = {
     todayOverview: "Here's what's happening today",
     viewReports: "View Reports",
     quickActions: "Quick Actions",
+    
+    // Login
+    loginToYourAccount: "Sign in to access your admin dashboard",
+    rememberMe: "Remember me",
+    forgotPassword: "Forgot password?",
+    signIn: "Sign In",
+    signingIn: "Signing in...",
     todayActivity: "Today's Activity",
     totalBookings: "Total Bookings",
     activeUsers: "Active Users",

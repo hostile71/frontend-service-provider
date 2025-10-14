@@ -1,9 +1,11 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LocalizationProvider } from './contexts/LocalizationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import Layout from './components/layout/Layout';
 import { 
+  Login,
   Dashboard, 
   UserManagement, 
   ServiceProviders, 
@@ -85,14 +87,19 @@ const AdminUsers = () => {
   );
 };
 
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('authToken');
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
 const ServicePlatformAdmin = () => {
   const { isRTL } = useLocalization();
-  const { 
-    activeTab, 
-    showModal, 
-    setShowModal, 
-    modalType, 
-    showProfileSettings, 
+  const {
+    showModal,
+    setShowModal,
+    modalType,
+    showProfileSettings,
     setShowProfileSettings,
     showDetailView,
     detailViewItem,
@@ -100,87 +107,81 @@ const ServicePlatformAdmin = () => {
     closeDetailView
   } = useAppContext();
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'users':
-        return <UserManagement />;
-      case 'providers':
-        return <ServiceProviders />;
-      case 'services':
-      case 'service-list':
-        return <ServiceManagement />;
-      case 'categories':
-        return <Categories />;
-      case 'service-requests':
-        return <ServiceRequests />;
-      case 'bookings':
-      case 'all-bookings':
-        return <BookingManagement />;
-      case 'pending-bookings':
-        return <PendingBookings />;
-      case 'completed-bookings':
-        return <CompletedBookings />;
-      case 'content':
-      case 'pages':
-        return <ContentManagement />;
-      case 'reports':
-      case 'dashboard-reports':
-        return <Reports />;
-      case 'user-analytics':
-        return <UserAnalytics />;
-      case 'revenue-reports':
-        return <RevenueReports />;
-      case 'service-analytics':
-        return <ServiceAnalytics />;
-      case 'admin-users':
-        return <AdminUsers />;
-      case 'settings':
-      case 'general-settings':
-        return <Settings />;
-      case 'localization':
-        return <Localization />;
-      case 'security':
-        return <Security />;
-      case 'payments':
-        return <Payments />;
-      case 'invoices':
-        return <Invoices />;
-      case 'commissions':
-        return <Commissions />;
-      case 'banners':
-        return <Banners />;
-      case 'notifications':
-        return <NotificationsPage />;
-      default:
-        return <Dashboard />;
-    }
-  };
-
   return (
-    <div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}>
-      <Layout>
-        {renderContent()}
+    <>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
         
-        {/* Modals */}
-        <AddItemModal 
-          isOpen={showModal} 
-          onClose={() => setShowModal(false)} 
-          type={modalType}
+        {/* Protected Routes - Redirect to login if not authenticated */}
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <Navigate to="/dashboard" replace />
+            </ProtectedRoute>
+          } 
         />
-        <ProfileSettingsModal 
-          isOpen={showProfileSettings} 
-          onClose={() => setShowProfileSettings(false)} 
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </div>
+            </ProtectedRoute>
+          }
         />
-        <DetailViewModal 
-          isOpen={showDetailView} 
-          onClose={closeDetailView}
-          item={detailViewItem}
-          type={detailViewType}
-        />
-      </Layout>
-    </div>
+        <Route path="/users" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><UserManagement /></Layout></div></ProtectedRoute>} />
+        <Route path="/providers" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceProviders /></Layout></div></ProtectedRoute>} />
+        <Route path="/services" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceManagement /></Layout></div></ProtectedRoute>} />
+        <Route path="/categories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Categories /></Layout></div></ProtectedRoute>} />
+        <Route path="/service-requests" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceRequests /></Layout></div></ProtectedRoute>} />
+        <Route path="/bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><BookingManagement /></Layout></div></ProtectedRoute>} />
+        <Route path="/pending-bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><PendingBookings /></Layout></div></ProtectedRoute>} />
+        <Route path="/completed-bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><CompletedBookings /></Layout></div></ProtectedRoute>} />
+        <Route path="/content" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ContentManagement /></Layout></div></ProtectedRoute>} />
+        <Route path="/pages" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ContentManagement /></Layout></div></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Reports /></Layout></div></ProtectedRoute>} />
+        <Route path="/dashboard-reports" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Reports /></Layout></div></ProtectedRoute>} />
+        <Route path="/user-analytics" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><UserAnalytics /></Layout></div></ProtectedRoute>} />
+        <Route path="/revenue-reports" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><RevenueReports /></Layout></div></ProtectedRoute>} />
+        <Route path="/service-analytics" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceAnalytics /></Layout></div></ProtectedRoute>} />
+        <Route path="/admin-users" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><AdminUsers /></Layout></div></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Settings /></Layout></div></ProtectedRoute>} />
+        <Route path="/general-settings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Settings /></Layout></div></ProtectedRoute>} />
+        <Route path="/localization" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Localization /></Layout></div></ProtectedRoute>} />
+        <Route path="/security" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Security /></Layout></div></ProtectedRoute>} />
+        <Route path="/payments" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Payments /></Layout></div></ProtectedRoute>} />
+        <Route path="/invoices" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Invoices /></Layout></div></ProtectedRoute>} />
+        <Route path="/commissions" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Commissions /></Layout></div></ProtectedRoute>} />
+        <Route path="/banners" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Banners /></Layout></div></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><NotificationsPage /></Layout></div></ProtectedRoute>} />
+      </Routes>
+
+      {/* Global Modals - only show when authenticated */}
+      {localStorage.getItem('authToken') && (
+        <>
+          <AddItemModal 
+            isOpen={showModal} 
+            onClose={() => setShowModal(false)} 
+            type={modalType}
+          />
+          <ProfileSettingsModal 
+            isOpen={showProfileSettings} 
+            onClose={() => setShowProfileSettings(false)} 
+          />
+          <DetailViewModal 
+            isOpen={showDetailView} 
+            onClose={closeDetailView}
+            item={detailViewItem}
+            type={detailViewType}
+          />
+        </>
+      )}
+    </>
   );
 };
 
@@ -189,7 +190,9 @@ const App = () => {
     <ThemeProvider>
       <LocalizationProvider>
         <AppProvider>
-          <ServicePlatformAdmin />
+          <Router>
+            <ServicePlatformAdmin />
+          </Router>
         </AppProvider>
       </LocalizationProvider>
     </ThemeProvider>
