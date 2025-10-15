@@ -33,10 +33,8 @@ const Login = () => {
     // Simulate API call
     setTimeout(() => {
       if (formData.email && formData.password) {
-        // Store auth token (in real app, this would come from API)
-        localStorage.setItem('authToken', 'demo-token-123');
-        localStorage.setItem('userEmail', formData.email);
-        navigate('/dashboard');
+        // Redirect to 2FA page instead of directly to dashboard
+        navigate('/verify-2fa', { state: { email: formData.email } });
       } else {
         setError('Please enter valid credentials');
       }

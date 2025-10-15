@@ -6,6 +6,7 @@ import { AppProvider, useAppContext } from './contexts/AppContext';
 import Layout from './components/layout/Layout';
 import { 
   Login,
+  TwoFactorAuth,
   Dashboard, 
   UserManagement, 
   ServiceProviders, 
@@ -112,6 +113,7 @@ const ServicePlatformAdmin = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-2fa" element={<TwoFactorAuth />} />
         
         {/* Protected Routes - Redirect to login if not authenticated */}
         <Route 
