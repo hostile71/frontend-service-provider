@@ -41,6 +41,25 @@ export const translations = {
     todayOverview: "Here's what's happening today",
     viewReports: "View Reports",
     quickActions: "Quick Actions",
+    
+    // Login
+    loginToYourAccount: "Sign in to access your admin dashboard",
+    rememberMe: "Remember me",
+    forgotPassword: "Forgot password?",
+    signIn: "Sign In",
+    signingIn: "Signing in...",
+    
+    // Two-Factor Authentication
+    twoFactorAuth: "Two-Factor Authentication",
+    enterVerificationCode: "We've sent a verification code to",
+    enterCode: "Enter 6-digit code",
+    enterAllDigits: "Please enter all 6 digits",
+    resendCode: "Resend Code",
+    verify: "Verify & Continue",
+    verifying: "Verifying...",
+    codeResent: "Verification code sent successfully!",
+    backToLogin: "Back to Login",
+    sending: "Sending...",
     todayActivity: "Today's Activity",
     totalBookings: "Total Bookings",
     activeUsers: "Active Users",
@@ -192,6 +211,25 @@ export const translations = {
     viewReports: "عرض التقارير",
     quickActions: "الإجراءات السريعة",
     todayActivity: "نشاط اليوم",
+    
+    // Login (Arabic)
+    loginToYourAccount: "قم بتسجيل الدخول للوصول إلى لوحة التحكم الخاصة بك",
+    rememberMe: "تذكرني",
+    forgotPassword: "هل نسيت كلمة المرور؟",
+    signIn: "تسجيل الدخول",
+    signingIn: "جاري تسجيل الدخول...",
+    
+    // Two-Factor Authentication (Arabic)
+    twoFactorAuth: "المصادقة الثنائية",
+    enterVerificationCode: "لقد أرسلنا رمز التحقق إلى",
+    enterCode: "أدخل الرمز المكون من 6 أرقام",
+    enterAllDigits: "الرجاء إدخال جميع الأرقام الستة",
+    resendCode: "إعادة إرسال الرمز",
+    verify: "تحقق ومتابعة",
+    verifying: "جاري التحقق...",
+    codeResent: "تم إرسال رمز التحقق بنجاح!",
+    backToLogin: "العودة إلى تسجيل الدخول",
+    sending: "جاري الإرسال...",
     totalBookings: "إجمالي الحجوزات",
     activeUsers: "المستخدمون النشطون",
     monthlyRevenue: "الإيرادات الشهرية",

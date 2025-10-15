@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Menu, 
   Globe, 
@@ -13,6 +14,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { MENU_ITEMS, LANGUAGES } from '../../constants';
 
 const Header = () => {
+  const navigate = useNavigate();
   const { t, currentLanguage, changeLanguage, isRTL } = useLocalization();
   const { themeConfig } = useTheme();
   const { 
@@ -22,6 +24,16 @@ const Header = () => {
     setShowProfileMenu, 
     setShowProfileSettings 
   } = useAppContext();
+
+  const handleLogout = () => {
+    // Clear authentication token
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userEmail');
+    // Close profile menu
+    setShowProfileMenu(false);
+    // Redirect to login page
+    navigate('/login');
+  };
 
   const getPageTitle = () => {
     if (activeTab === 'dashboard') return t('dashboardOverview');
@@ -107,8 +119,8 @@ const Header = () => {
                     {t('profileSettings')}
                   </button>
                   <button
-                    onClick={() => setShowProfileMenu(false)}
-                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={handleLogout}
+                    className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                   >
                     <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                     {t('logout')}
