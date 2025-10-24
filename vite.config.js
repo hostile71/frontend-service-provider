@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     open: true,
+    port: 5174,
+    // Handle client-side routing - fallback to index.html for all routes
+    historyApiFallback: true,
   },
   esbuild: {
     loader: 'jsx',

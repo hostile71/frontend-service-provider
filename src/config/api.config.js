@@ -33,6 +33,14 @@ export const API_ENDPOINTS = {
     UPDATE_PROFILE: '/api/profile/update',
     MENUS: '/api/user/menus',
   },
+  // Categories
+  CATEGORIES: {
+    LIST: '/api/categories',
+    GET: (id) => `/api/categories/${id}`,
+    CREATE: '/api/categories',
+    UPDATE: (id) => `/api/categories/${id}`,
+    DELETE: (id) => `/api/categories/${id}`,
+  },
   // Service Providers
   PROVIDERS: {
     LIST: '/api/providers',

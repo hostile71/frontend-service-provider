@@ -139,8 +139,8 @@ const userService = {
 
   /**
    * Get all users
-   * @param {Object} params - Query parameters
-   * @returns {Promise<Object>} Users list
+   * @param {Object} params - Query parameters (page, type, search, per_page, etc.)
+   * @returns {Promise<Object>} Users list with pagination
    */
   getAll: async (params = {}) => {
     try {
@@ -158,6 +158,7 @@ const userService = {
         data,
       };
     } catch (error) {
+      console.error('Get users error:', error);
       throw error;
     }
   },
@@ -215,12 +216,20 @@ const userService = {
   /**
    * Update user
    * @param {number} id - User ID
-   * @param {Object} userData - Updated user data
+   * @param {Object|FormData} userData - Updated user data
    * @returns {Promise<Object>} Updated user
    */
   update: async (id, userData) => {
     try {
-      const response = await apiClient.put(API_ENDPOINTS.USERS.UPDATE(id), userData);
+      // If userData is FormData, we need to set proper headers
+      const config = {};
+      if (userData instanceof FormData) {
+        config.headers = {
+          'Content-Type': 'multipart/form-data',
+        };
+      }
+
+      const response = await apiClient.post(API_ENDPOINTS.USERS.UPDATE(id), userData, config);
 
       const { status, message, data } = response.data;
 
