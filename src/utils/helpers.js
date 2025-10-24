@@ -1,3 +1,16 @@
+// Re-export asset helpers for convenience
+export {
+  buildAssetUrl,
+  getAssetUrl,
+  getProfilePictureUrl,
+  getServiceImageUrl,
+  getCategoryImageUrl,
+  getBannerImageUrl,
+  getDocumentUrl,
+  getUserInitials,
+  getUserFullName,
+} from './assetHelpers';
+
 // Filter function for search
 export const filterData = (data, searchTerm, searchFields) => {
   if (!searchTerm) return data;
@@ -127,4 +140,50 @@ export const getStatusConfig = (status) => {
   };
   
   return statusConfigs[status] || { color: 'bg-gray-100 text-gray-800' };
+};
+
+/**
+ * Format date to locale string
+ * @param {string|Date} date - Date to format
+ * @param {string} locale - Locale string (default: 'en-US')
+ * @returns {string} Formatted date
+ */
+export const formatDate = (date, locale = 'en-US') => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString(locale);
+};
+
+/**
+ * Format date with time
+ * @param {string|Date} date - Date to format
+ * @param {string} locale - Locale string (default: 'en-US')
+ * @returns {string} Formatted date with time
+ */
+export const formatDateTime = (date, locale = 'en-US') => {
+  if (!date) return '';
+  return new Date(date).toLocaleString(locale);
+};
+
+/**
+ * Get initials from name
+ * @param {string} firstName - First name
+ * @param {string} lastName - Last name
+ * @returns {string} Initials (e.g., "JD")
+ */
+export const getInitials = (firstName, lastName) => {
+  if (!firstName && !lastName) return '??';
+  const first = firstName ? firstName.charAt(0).toUpperCase() : '';
+  const last = lastName ? lastName.charAt(0).toUpperCase() : '';
+  return `${first}${last}`;
+};
+
+/**
+ * Get full name from first and last name
+ * @param {string} firstName - First name
+ * @param {string} lastName - Last name
+ * @returns {string} Full name
+ */
+export const getFullName = (firstName, lastName) => {
+  if (!firstName && !lastName) return 'Unknown User';
+  return `${firstName || ''} ${lastName || ''}`.trim();
 };

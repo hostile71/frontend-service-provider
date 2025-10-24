@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Shield, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useVerify2FA, useResend2FACode } from '../../hooks/useAuth';
 
 const TwoFactorAuth = () => {
   const { t, isRTL } = useLocalization();
@@ -10,11 +11,11 @@ const TwoFactorAuth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // Use React Query mutation hooks
+  const verify2FAMutation = useVerify2FA();
+  const resend2FAMutation = useResend2FACode();
+  
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
   const inputRefs = useRef([]);
 
   // Redirect if no email in state (came directly to this page)
@@ -31,7 +32,11 @@ const TwoFactorAuth = () => {
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
-    setError('');
+    
+    // Clear error when user types
+    if (verify2FAMutation.isError) {
+      verify2FAMutation.reset();
+    }
 
     // Auto-focus next input
     if (value && index < 5) {
@@ -70,34 +75,34 @@ const TwoFactorAuth = () => {
     const verificationCode = code.join('');
     
     if (verificationCode.length !== 6) {
-      setError(t('enterAllDigits') || 'Please enter all 6 digits');
       return;
     }
 
-    setLoading(true);
-    setError('');
+    // Get email from location state
+    const email = location.state?.email || localStorage.getItem('userEmail');
+    
+    if (!email) {
+      navigate('/login', { replace: true });
+      return;
+    }
 
-    // Simulate API call for verification
-    setTimeout(() => {
-      // Demo: accept any 6-digit code
-      localStorage.setItem('authToken', 'demo-token-123');
-      localStorage.setItem('userEmail', location.state?.email || 'admin@example.com');
-      localStorage.setItem('2faVerified', 'true');
-      navigate('/dashboard');
-      setLoading(false);
-    }, 1000);
+    // Call verify 2FA mutation
+    verify2FAMutation.mutate({
+      email,
+      code: verificationCode
+    });
   };
 
   const handleResendCode = async () => {
-    setResendLoading(true);
-    setResendSuccess(false);
+    const email = location.state?.email || localStorage.getItem('userEmail');
     
-    // Simulate API call to resend code
-    setTimeout(() => {
-      setResendLoading(false);
-      setResendSuccess(true);
-      setTimeout(() => setResendSuccess(false), 3000);
-    }, 1000);
+    if (!email) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    // Call resend mutation
+    resend2FAMutation.mutate(email);
   };
 
   const handleBackToLogin = () => {
@@ -142,16 +147,23 @@ const TwoFactorAuth = () => {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {verify2FAMutation.isError && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
+              {verify2FAMutation.error?.message || 'Verification failed. Please check your code.'}
             </div>
           )}
 
-          {/* Success Message */}
-          {resendSuccess && (
+          {/* Success Message for Resend */}
+          {resend2FAMutation.isSuccess && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
-              {t('codeResent') || 'Verification code sent successfully!'}
+              {resend2FAMutation.data?.message || t('codeResent') || 'Verification code sent successfully!'}
+            </div>
+          )}
+
+          {/* Error Message for Resend */}
+          {resend2FAMutation.isError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {resend2FAMutation.error?.message || 'Failed to resend code. Please try again.'}
             </div>
           )}
 
@@ -174,7 +186,7 @@ const TwoFactorAuth = () => {
                     onChange={(e) => handleChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
-                    disabled={loading}
+                    disabled={verify2FAMutation.isPending}
                   />
                 ))}
               </div>
@@ -185,10 +197,10 @@ const TwoFactorAuth = () => {
               <button
                 type="button"
                 onClick={handleResendCode}
-                disabled={resendLoading}
+                disabled={resend2FAMutation.isPending}
                 className={`text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
               >
-                {resendLoading ? (
+                {resend2FAMutation.isPending ? (
                   <>
                     <RefreshCw className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} animate-spin`} />
                     {t('sending') || 'Sending...'}
@@ -205,10 +217,10 @@ const TwoFactorAuth = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || code.join('').length !== 6}
+              disabled={verify2FAMutation.isPending || code.join('').length !== 6}
               className={`w-full bg-gradient-to-r ${themeConfig.gradient} text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl`}
             >
-              {loading ? (
+              {verify2FAMutation.isPending ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>{t('verifying') || 'Verifying...'}</span>
@@ -221,9 +233,9 @@ const TwoFactorAuth = () => {
 
           {/* Demo Info */}
           <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-800 font-medium mb-2">Demo Mode:</p>
-            <p className="text-xs text-blue-600">Enter any 6-digit code to continue</p>
-            <p className="text-xs text-blue-600">Example: 123456</p>
+            <p className="text-xs text-blue-800 font-medium mb-2">Demo Code:</p>
+            <p className="text-xs text-blue-600">Code: 123456</p>
+            <p className="text-xs text-blue-500 mt-2">Note: Make sure backend server is running on localhost</p>
           </div>
         </div>
       </div>

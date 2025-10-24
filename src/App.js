@@ -1,8 +1,26 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { LocalizationProvider } from './contexts/LocalizationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AppProvider, useAppContext } from './contexts/AppContext';
+import { UserProvider } from './contexts/UserContext';
+import { ToastProvider } from './contexts/ToastContext';
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 import Layout from './components/layout/Layout';
 import { 
   Login,
@@ -88,10 +106,18 @@ const AdminUsers = () => {
   );
 };
 
-// Protected Route Component
+// Protected Route Component - Redirect to login if not authenticated
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('authToken');
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  const is2FAVerified = localStorage.getItem('2faVerified');
+  return (isAuthenticated && is2FAVerified === 'true') ? children : <Navigate to="/login" replace />;
+};
+
+// Public Route Component - Redirect to dashboard if already authenticated
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('authToken');
+  const is2FAVerified = localStorage.getItem('2faVerified');
+  return (isAuthenticated && is2FAVerified === 'true') ? <Navigate to="/dashboard" replace /> : children;
 };
 
 const ServicePlatformAdmin = () => {
@@ -111,9 +137,23 @@ const ServicePlatformAdmin = () => {
   return (
     <>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/verify-2fa" element={<TwoFactorAuth />} />
+        {/* Public Routes - Redirect to dashboard if already authenticated */}
+        <Route 
+          path="/login" 
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/verify-2fa" 
+          element={
+            <PublicRoute>
+              <TwoFactorAuth />
+            </PublicRoute>
+          } 
+        />
         
         {/* Protected Routes - Redirect to login if not authenticated */}
         <Route 
@@ -189,15 +229,23 @@ const ServicePlatformAdmin = () => {
 
 const App = () => {
   return (
-    <ThemeProvider>
-      <LocalizationProvider>
-        <AppProvider>
-          <Router>
-            <ServicePlatformAdmin />
-          </Router>
-        </AppProvider>
-      </LocalizationProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <LocalizationProvider>
+          <AppProvider>
+            <UserProvider>
+              <ToastProvider>
+                <Router>
+                  <ServicePlatformAdmin />
+                </Router>
+              </ToastProvider>
+            </UserProvider>
+          </AppProvider>
+        </LocalizationProvider>
+      </ThemeProvider>
+      {/* React Query Devtools - only in development */}
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
   );
 };
 

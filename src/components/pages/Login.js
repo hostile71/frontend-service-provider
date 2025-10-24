@@ -3,43 +3,43 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff, LogIn, Shield } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useLogin } from '../../hooks/useAuth';
 
 const Login = () => {
   const { t, isRTL } = useLocalization();
   const { themeConfig } = useTheme();
   const navigate = useNavigate();
   
+  // Use React Query mutation hook
+  const loginMutation = useLogin();
+  
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: 'hussainmahamud.swe@gmail.com',
+    password: '12345678'
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-    setError('');
+    // Clear error when user types
+    if (loginMutation.isError) {
+      loginMutation.reset();
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    
+    // Validate form
+    if (!formData.email || !formData.password) {
+      return;
+    }
 
-    // Simulate API call
-    setTimeout(() => {
-      if (formData.email && formData.password) {
-        // Redirect to 2FA page instead of directly to dashboard
-        navigate('/verify-2fa', { state: { email: formData.email } });
-      } else {
-        setError('Please enter valid credentials');
-      }
-      setLoading(false);
-    }, 1000);
+    // Call login mutation
+    loginMutation.mutate(formData);
   };
 
   return (
@@ -68,9 +68,9 @@ const Login = () => {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {loginMutation.isError && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
+              {loginMutation.error?.message || 'Login failed. Please check your credentials.'}
             </div>
           )}
 
@@ -146,10 +146,10 @@ const Login = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loginMutation.isPending}
               className={`w-full bg-gradient-to-r ${themeConfig.gradient} text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl`}
             >
-              {loading ? (
+              {loginMutation.isPending ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>{t('signingIn') || 'Signing in...'}</span>
@@ -166,8 +166,9 @@ const Login = () => {
           {/* Demo Credentials */}
           <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-blue-800 font-medium mb-2">Demo Credentials:</p>
-            <p className="text-xs text-blue-600">Email: admin@example.com</p>
-            <p className="text-xs text-blue-600">Password: any password</p>
+            <p className="text-xs text-blue-600">Email: hussainmahamud.swe@gmail.com</p>
+            <p className="text-xs text-blue-600">Password: 12345678</p>
+            <p className="text-xs text-blue-500 mt-2">Note: Make sure backend server is running on localhost</p>
           </div>
 
           {/* Footer */}
