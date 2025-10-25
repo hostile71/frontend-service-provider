@@ -9,6 +9,7 @@ import { useDeleteUser } from '../../hooks/useUsers';
 import ApiDataTable from '../ui/ApiDataTable';
 import UserDetailModal from '../ui/UserDetailModal';
 import UserEditModal from '../ui/UserEditModal';
+import UserAddModal from '../ui/UserAddModal';
 import { User } from 'lucide-react';
 
 const UserManagement = () => {
@@ -26,6 +27,7 @@ const UserManagement = () => {
   // Modal states
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Delete mutation
@@ -77,10 +79,9 @@ const UserManagement = () => {
     }
   }, [deleteUserMutation]);
 
-  const handleAddUser = () => {
-    setModalType('user');
-    setShowModal(true);
-  };
+  const handleAddUser = useCallback(() => {
+    setShowAddModal(true);
+  }, []);
 
   // Log when query key changes
   console.log('📊 Current query params:', { currentPage, perPage, searchQuery });
@@ -202,6 +203,16 @@ const UserManagement = () => {
         userType="customer"
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['users', 'customer'] });
+        }}
+      />
+
+      {/* User Add Modal */}
+      <UserAddModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['users', 'customer'] });
+          setShowAddModal(false);
         }}
       />
     </>

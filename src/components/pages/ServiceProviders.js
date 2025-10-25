@@ -9,6 +9,7 @@ import { useDeleteUser } from '../../hooks/useUsers';
 import ApiDataTable from '../ui/ApiDataTable';
 import UserDetailModal from '../ui/UserDetailModal';
 import UserEditModal from '../ui/UserEditModal';
+import ProviderAddModal from '../ui/ProviderAddModal';
 import { User } from 'lucide-react';
 
 const ServiceProviders = () => {
@@ -26,6 +27,7 @@ const ServiceProviders = () => {
   // Modal states
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
 
   // Delete mutation
@@ -44,10 +46,9 @@ const ServiceProviders = () => {
     placeholderData: (previousData) => previousData,
   });
 
-  const handleAddProvider = () => {
-    setModalType('provider');
-    setShowModal(true);
-  };
+  const handleAddProvider = useCallback(() => {
+    setShowAddModal(true);
+  }, []);
 
   const handlePageChange = useCallback((page, newPerPage) => {
     if (newPerPage !== null && newPerPage !== undefined && newPerPage !== perPage) {
@@ -196,6 +197,16 @@ const ServiceProviders = () => {
         userType="provider"
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['users', 'provider'] });
+        }}
+      />
+
+      {/* Provider Add Modal */}
+      <ProviderAddModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['users', 'provider'] });
+          setShowAddModal(false);
         }}
       />
     </>

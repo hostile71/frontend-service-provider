@@ -1,21 +1,19 @@
 /**
- * User Edit Modal Component
+ * User Add Modal Component
  * 
- * Form for editing user (customer/provider) information
+ * Form for adding new user (customer)
  */
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, Upload, User as UserIcon } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
-import { useUser as useUserContext } from '../../contexts/UserContext';
-import { useUpdateUser } from '../../hooks/useUsers';
+import { useCreateUser } from '../../hooks/useUsers';
 import { useQuery } from '@tanstack/react-query';
 import { roleService } from '../../services';
 
-const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
+const UserAddModal = ({ isOpen, onClose, onSuccess }) => {
   const { t } = useLocalization();
-  const { assetUrl } = useUserContext();
-  const updateUserMutation = useUpdateUser();
+  const createUserMutation = useCreateUser();
 
   // Fetch roles from API
   const { data: rolesData, isLoading: rolesLoading } = useQuery({
@@ -36,57 +34,36 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
     address: '',
     password: '',
     password_confirmation: '',
-    type: '',
+    type: 'customer', // Auto-selected for customer
     status: 'active',
     role_id: '',
-    // Provider-specific fields
-    company_name: '',
-    business_license: '',
-    specialization: '',
-    experience: '',
-    certifications: '',
   });
 
   const [profilePicture, setProfilePicture] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   const [errors, setErrors] = useState({});
 
-  // Initialize form data when user changes
+  // Reset form when modal opens
   useEffect(() => {
-    if (user) {
+    if (isOpen) {
       setFormData({
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
-        email: user.email || '',
-        mobile_no: user.mobile_no || '',
-        identification_number: user.identification_number || '',
-        address: user.address || '',
+        first_name: '',
+        last_name: '',
+        email: '',
+        mobile_no: '',
+        identification_number: '',
+        address: '',
         password: '',
         password_confirmation: '',
-        type: user.type || '',
-        status: user.status || 'active',
-        role_id: user.role_id || '',
-        company_name: user.company_name || '',
-        business_license: user.business_license || '',
-        specialization: user.specialization || '',
-        experience: user.experience || '',
-        certifications: user.certifications || '',
+        type: 'customer',
+        status: 'active',
+        role_id: '',
       });
       setProfilePicture(null);
-      
-      // Set existing profile picture preview
-      if (user.profile_picture) {
-        const profilePicUrl = user.profile_picture.startsWith('http') 
-          ? user.profile_picture 
-          : `${assetUrl}/${user.profile_picture}`;
-        setProfilePicturePreview(profilePicUrl);
-      } else {
-        setProfilePicturePreview(null);
-      }
-      
+      setProfilePicturePreview(null);
       setErrors({});
     }
-  }, [user, assetUrl]);
+  }, [isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -139,16 +116,7 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
 
   const handleRemoveImage = () => {
     setProfilePicture(null);
-    
-    // Reset to original profile picture
-    if (user?.profile_picture) {
-      const profilePicUrl = user.profile_picture.startsWith('http') 
-        ? user.profile_picture 
-        : `${assetUrl}/${user.profile_picture}`;
-      setProfilePicturePreview(profilePicUrl);
-    } else {
-      setProfilePicturePreview(null);
-    }
+    setProfilePicturePreview(null);
   };
 
   const validate = () => {
@@ -169,14 +137,14 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
       newErrors.mobile_no = 'Phone number is required';
     }
 
-    // Password validation - only if password is being changed
-    if (formData.password) {
-      if (formData.password.length < 8) {
-        newErrors.password = 'Password must be at least 8 characters';
-      }
-      if (formData.password !== formData.password_confirmation) {
-        newErrors.password_confirmation = 'Passwords do not match';
-      }
+    // Password validation - required for new user
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+    if (formData.password !== formData.password_confirmation) {
+      newErrors.password_confirmation = 'Passwords do not match';
     }
 
     setErrors(newErrors);
@@ -194,50 +162,37 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
       // Create FormData for file upload
       const submitData = new FormData();
       
-      // Append all form fields (only non-empty values)
-      if (formData.first_name) submitData.append('first_name', formData.first_name);
-      if (formData.last_name) submitData.append('last_name', formData.last_name);
-      if (formData.email) submitData.append('email', formData.email);
-      if (formData.mobile_no) submitData.append('mobile_no', formData.mobile_no);
+      // Append all form fields
+      submitData.append('first_name', formData.first_name);
+      submitData.append('last_name', formData.last_name);
+      submitData.append('email', formData.email);
+      submitData.append('mobile_no', formData.mobile_no);
+      submitData.append('type', formData.type);
+      submitData.append('status', formData.status);
+      submitData.append('password', formData.password);
+      submitData.append('password_confirmation', formData.password_confirmation);
+      
+      // Optional fields
       if (formData.identification_number) submitData.append('identification_number', formData.identification_number);
       if (formData.address) submitData.append('address', formData.address);
-      if (formData.type) submitData.append('type', formData.type);
-      if (formData.status) submitData.append('status', formData.status);
       if (formData.role_id) submitData.append('role_id', formData.role_id);
-      
-      // Password fields - only if password is being changed
-      if (formData.password) {
-        submitData.append('password', formData.password);
-        if (formData.password_confirmation) {
-          submitData.append('password_confirmation', formData.password_confirmation);
-        }
-      }
 
-      // Provider-specific fields
-      if (userType === 'provider') {
-        if (formData.company_name) submitData.append('company_name', formData.company_name);
-        if (formData.business_license) submitData.append('business_license', formData.business_license);
-        if (formData.specialization) submitData.append('specialization', formData.specialization);
-        if (formData.experience) submitData.append('experience', formData.experience);
-        if (formData.certifications) submitData.append('certifications', formData.certifications);
-      }
-
-      // Append profile picture ONLY if a new file was selected
+      // Append profile picture if selected
       if (profilePicture && profilePicture instanceof File) {
         submitData.append('profile_picture', profilePicture);
       }
 
-      await updateUserMutation.mutateAsync({
-        id: user.id,
-        userData: submitData
-      });
+      await createUserMutation.mutateAsync(submitData);
 
       if (onSuccess) {
         onSuccess();
       }
       onClose();
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('Error creating user:', error);
+      console.log('Error response:', error.response);
+      console.log('Error response data:', error.response?.data);
+      console.log('Error response errors:', error.response?.data?.errors);
       
       // Handle validation errors from backend
       // Note: apiClient transforms errors to { status, message, errors, code, data }
@@ -250,14 +205,18 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
           formattedErrors[key] = Array.isArray(errorValue) ? errorValue[0] : errorValue;
         });
         
+        console.log('Formatted errors:', formattedErrors);
         setErrors(formattedErrors);
       } else if (error.message) {
+        // Set a general error message
         setErrors({ general: error.message });
+      } else {
+        setErrors({ general: 'An error occurred while creating the user' });
       }
     }
   };
 
-  if (!isOpen || !user) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -265,12 +224,12 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r">
           <h3 className="text-xl font-semibold text-black">
-            Edit {userType === 'provider' ? 'Service Provider' : 'Customer'}
+            Add New Customer
           </h3>
           <button 
             onClick={onClose} 
             className="p-2 hover:bg-white/20 rounded-lg transition-colors text-black"
-            disabled={updateUserMutation.isPending}
+            disabled={createUserMutation.isPending}
           >
             <X className="w-5 h-5" />
           </button>
@@ -279,6 +238,13 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
           <div className="space-y-6">
+            {/* General Error Message */}
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-600 text-sm">{errors.general}</p>
+              </div>
+            )}
+
             {/* Profile Picture */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
               <h4 className="font-semibold text-gray-900 mb-4">Profile Picture</h4>
@@ -307,7 +273,7 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
                     />
                     <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
                       <Upload className="w-4 h-4 mr-2" />
-                      Upload New Picture
+                      Upload Picture
                     </span>
                   </label>
                   {profilePicturePreview && (
@@ -414,8 +380,13 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
                     name="identification_number"
                     value={formData.identification_number}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.identification_number ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   />
+                  {errors.identification_number && (
+                    <p className="text-red-500 text-sm mt-1">{errors.identification_number}</p>
+                  )}
                 </div>
 
                 <div>
@@ -439,17 +410,13 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     User Type
                   </label>
-                  <select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select Type</option>
-                    <option value="admin">Admin</option>
-                    <option value="provider">Provider</option>
-                    <option value="customer">Customer</option>
-                  </select>
+                  <input
+                    type="text"
+                    value="Customer"
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                  />
+                  <input type="hidden" name="type" value="customer" />
                 </div>
 
                 <div>
@@ -490,13 +457,13 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
               </div>
             </div>
 
-            {/* Password Update Section */}
+            {/* Password Section */}
             <div className="bg-yellow-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-4">Password Update (Optional)</h4>
+              <h4 className="font-semibold text-gray-900 mb-4">Password <span className="text-red-500">*</span></h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    New Password
+                    Password <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -506,7 +473,6 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.password ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="Leave blank to keep current password"
                   />
                   {errors.password && (
                     <p className="text-red-500 text-sm mt-1">{errors.password}</p>
@@ -514,9 +480,9 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
                   <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirm Password
+                    Confirm Password <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -526,7 +492,6 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.password_confirmation ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="Confirm new password"
                   />
                   {errors.password_confirmation && (
                     <p className="text-red-500 text-sm mt-1">{errors.password_confirmation}</p>
@@ -534,80 +499,6 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
                 </div>
               </div>
             </div>
-
-            {/* Provider-specific fields */}
-            {userType === 'provider' && (
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-4">Business Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Company Name
-                    </label>
-                    <input
-                      type="text"
-                      name="company_name"
-                      value={formData.company_name}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Business License
-                    </label>
-                    <input
-                      type="text"
-                      name="business_license"
-                      value={formData.business_license}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Specialization
-                    </label>
-                    <input
-                      type="text"
-                      name="specialization"
-                      value={formData.specialization}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Experience
-                    </label>
-                    <input
-                      type="text"
-                      name="experience"
-                      value={formData.experience}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Certifications
-                    </label>
-                    <textarea
-                      name="certifications"
-                      value={formData.certifications}
-                      onChange={handleChange}
-                      rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter certifications separated by commas"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </form>
 
@@ -617,25 +508,25 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
             type="button"
             onClick={onClose}
             className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-            disabled={updateUserMutation.isPending}
+            disabled={createUserMutation.isPending}
           >
             Cancel
           </button>
           <button 
             type="submit"
             onClick={handleSubmit}
-            disabled={updateUserMutation.isPending}
+            disabled={createUserMutation.isPending}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2"
           >
-            {updateUserMutation.isPending ? (
+            {createUserMutation.isPending ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Saving...</span>
+                <span>Creating...</span>
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>Save Changes</span>
+                <span>Create Customer</span>
               </>
             )}
           </button>
@@ -645,4 +536,4 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
   );
 };
 
-export default UserEditModal;
+export default UserAddModal;

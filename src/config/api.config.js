@@ -33,6 +33,10 @@ export const API_ENDPOINTS = {
     UPDATE_PROFILE: '/api/profile/update',
     MENUS: '/api/user/menus',
   },
+  // Roles
+  ROLES: {
+    LIST: '/api/roles',
+  },
   // Categories
   CATEGORIES: {
     LIST: '/api/categories',

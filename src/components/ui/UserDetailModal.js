@@ -54,7 +54,7 @@ const UserDetailModal = ({ isOpen, onClose, userId, userType }) => {
     return (
       <div className="space-y-6">
         {/* Profile Header */}
-        <div className="bg-gradient-to-r ">
+        <div className="bg-gradient-to-r">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
               {profileImageUrl ? (
@@ -80,12 +80,13 @@ const UserDetailModal = ({ isOpen, onClose, userId, userType }) => {
               <h3 className="text-2xl font-bold text-gray-900">
                 {user.first_name} {user.last_name}
               </h3>
-              <p className="text-gray-600 mt-1">
-                {user.identification_number || 'No ID number'}
+              <p className="text-gray-600 mt-1 flex items-center">
+                <Mail className="w-4 h-4 mr-1" />
+                {user.email}
               </p>
-              <div className="mt-2">
-                <StatusBadge status={user.status} />
-              </div>
+              <p className="text-gray-600 mt-1">
+                ID: {user.identification_number || 'N/A'}
+              </p>
             </div>
           </div>
         </div>
@@ -97,6 +98,14 @@ const UserDetailModal = ({ isOpen, onClose, userId, userType }) => {
             Basic Information
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">First Name</label>
+              <p className="text-gray-900 mt-1">{user.first_name || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Last Name</label>
+              <p className="text-gray-900 mt-1">{user.last_name || '-'}</p>
+            </div>
             <div>
               <label className="text-sm font-medium text-gray-500 flex items-center">
                 <Mail className="w-4 h-4 mr-1" />
@@ -112,6 +121,10 @@ const UserDetailModal = ({ isOpen, onClose, userId, userType }) => {
               <p className="text-gray-900 mt-1">{user.mobile_no || '-'}</p>
             </div>
             <div>
+              <label className="text-sm font-medium text-gray-500">Identification Number</label>
+              <p className="text-gray-900 mt-1">{user.identification_number || '-'}</p>
+            </div>
+            <div>
               <label className="text-sm font-medium text-gray-500 flex items-center">
                 <Shield className="w-4 h-4 mr-1" />
                 User Type
@@ -119,6 +132,12 @@ const UserDetailModal = ({ isOpen, onClose, userId, userType }) => {
               <p className="text-gray-900 mt-1 capitalize">
                 {user.type || userType || '-'}
               </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Status</label>
+              <div className="mt-1">
+                <StatusBadge status={user.status} />
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500 flex items-center">
@@ -144,83 +163,75 @@ const UserDetailModal = ({ isOpen, onClose, userId, userType }) => {
         )}
 
         {/* Provider-specific Information */}
-        {userType === 'provider' && (
+        {(userType === 'provider' || user.type === 'provider') && (
           <>
-            {(user.company_name || user.business_license) && (
-              <div className="bg-purple-50 p-6 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <Building className="w-5 h-5 mr-2 text-purple-600" />
-                  Business Information
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {user.company_name && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Company Name</label>
-                      <p className="text-gray-900 mt-1">{user.company_name}</p>
-                    </div>
-                  )}
-                  {user.business_license && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Business License</label>
-                      <p className="text-gray-900 mt-1">{user.business_license}</p>
-                    </div>
-                  )}
+            <div className="bg-purple-50 p-6 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <Building className="w-5 h-5 mr-2 text-purple-600" />
+                Business Information
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Company Name</label>
+                  <p className="text-gray-900 mt-1">{user.company_name || '-'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Business License</label>
+                  <p className="text-gray-900 mt-1">{user.business_license || '-'}</p>
                 </div>
               </div>
-            )}
+            </div>
 
-            {(user.specialization || user.experience || user.certifications) && (
-              <div className="bg-green-50 p-6 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <Award className="w-5 h-5 mr-2 text-green-600" />
-                  Professional Information
-                </h4>
-                <div className="space-y-3">
-                  {user.specialization && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Specialization</label>
-                      <p className="text-gray-900 mt-1">{user.specialization}</p>
-                    </div>
-                  )}
-                  {user.experience && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Experience</label>
-                      <p className="text-gray-900 mt-1">{user.experience}</p>
-                    </div>
-                  )}
-                  {user.certifications && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Certifications</label>
-                      <p className="text-gray-900 mt-1">{user.certifications}</p>
-                    </div>
-                  )}
+            <div className="bg-green-50 p-6 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <Award className="w-5 h-5 mr-2 text-green-600" />
+                Professional Information
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Specialization</label>
+                  <p className="text-gray-900 mt-1">{user.specialization || '-'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Experience</label>
+                  <p className="text-gray-900 mt-1">{user.experience || '-'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-gray-500">Certifications</label>
+                  <p className="text-gray-900 mt-1 whitespace-pre-wrap">{user.certifications || '-'}</p>
                 </div>
               </div>
-            )}
+            </div>
           </>
         )}
 
         {/* Role Information */}
-        {user.role && (
-          <div className="bg-indigo-50 p-6 rounded-lg">
-            <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-              <Shield className="w-5 h-5 mr-2 text-indigo-600" />
-              Role Information
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">Role Name</label>
-                <p className="text-gray-900 mt-1">{user.role.role_name || '-'}</p>
-              </div>
-              {user.role.description && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Description</label>
-                  <p className="text-gray-900 mt-1">{user.role.description}</p>
-                </div>
-              )}
+        <div className="bg-indigo-50 p-6 rounded-lg">
+          <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+            <Shield className="w-5 h-5 mr-2 text-indigo-600" />
+            Role & Permissions
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Role Name</label>
+              <p className="text-gray-900 mt-1">
+                {user.role?.role_name || '-'}
+              </p>
             </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Role Key</label>
+              <p className="text-gray-900 mt-1">
+                {user.role?.role_key || '-'}
+              </p>
+            </div>
+            {user.role?.description && (
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-gray-500">Role Description</label>
+                <p className="text-gray-900 mt-1">{user.role.description}</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Statistics (if available) */}
         {(user.total_bookings || user.total_spent || user.completed_services || user.rating) && (

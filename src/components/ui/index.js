@@ -6,3 +6,7 @@ export { default as DataTable } from './DataTable';
 export { default as ApiDataTable } from './ApiDataTable';
 export { default as AddItemModal } from './AddItemModal';
 export { default as ProfileSettingsModal } from './ProfileSettingsModal';
+export { default as UserDetailModal } from './UserDetailModal';
+export { default as UserEditModal } from './UserEditModal';
+export { default as UserAddModal } from './UserAddModal';
+export { default as ProviderAddModal } from './ProviderAddModal';

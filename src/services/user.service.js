@@ -190,12 +190,20 @@ const userService = {
 
   /**
    * Create new user
-   * @param {Object} userData - User data
+   * @param {Object|FormData} userData - User data
    * @returns {Promise<Object>} Created user
    */
   create: async (userData) => {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.USERS.CREATE, userData);
+      // If userData is FormData, we need to set proper headers
+      const config = {};
+      if (userData instanceof FormData) {
+        config.headers = {
+          'Content-Type': 'multipart/form-data',
+        };
+      }
+
+      const response = await apiClient.post(API_ENDPOINTS.USERS.CREATE, userData, config);
 
       const { status, message, data } = response.data;
 
