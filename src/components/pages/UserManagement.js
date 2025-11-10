@@ -49,10 +49,15 @@ const UserManagement = () => {
   });
 
   // Handler functions with useCallback to prevent re-renders
-  const handlePageChange = useCallback((page) => {
-    console.log('📄 Page change requested:', page);
-    setCurrentPage(page);
-  }, []);
+  const handlePageChange = useCallback((page, newPerPage) => {
+    console.log('📄 Page change requested:', page, newPerPage);
+    if (newPerPage !== null && newPerPage !== undefined && newPerPage !== perPage) {
+      setPerPage(newPerPage);
+      setCurrentPage(1);
+    } else if (page !== currentPage) {
+      setCurrentPage(page);
+    }
+  }, [currentPage, perPage]);
 
   const handleSearch = useCallback((query) => {
     console.log('🔍 Search requested:', query);

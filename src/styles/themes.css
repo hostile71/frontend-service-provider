@@ -239,3 +239,27 @@
   color: var(--theme-primary);
   font-weight: 600;
 }
+
+/* Thin scrollbar utility for table containers (horizontal scroll) */
+.thin-scrollbar {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.35) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari) horizontal scrollbar */
+.thin-scrollbar::-webkit-scrollbar {
+  height: 8px; /* make the horizontal scrollbar thin */
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.35);
+  border-radius: 9999px;
+  border: 2px solid transparent; /* give a little breathing room */
+  background-clip: padding-box;
+}
+.thin-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}

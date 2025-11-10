@@ -208,8 +208,8 @@ const DataTable = ({
         </div>
       </div>
       
-      {/* Table */}
-      <div className="overflow-x-auto">
+  {/* Table */}
+  <div className="overflow-x-auto thin-scrollbar">
         <table className={`w-full ${isRTL ? 'table-rtl' : ''}`}>
           <thead className="bg-gray-50">
             <tr>
@@ -284,15 +284,15 @@ const DataTable = ({
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">Show:</span>
                 <select
-                  value={itemsPerPage}
-                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  value={String(itemsPerPage)}
+                  onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value, 10))}
                   className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
                 </select>
                 <span className="text-sm text-gray-700">per page</span>
               </div>
