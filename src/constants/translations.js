@@ -34,21 +34,21 @@ export const translations = {
     localization: "Localization",
     security: "Security",
     settings: "Settings",
-    
+
     // Dashboard
     dashboardOverview: "Dashboard Overview",
     welcome: "Welcome to",
     todayOverview: "Here's what's happening today",
     viewReports: "View Reports",
     quickActions: "Quick Actions",
-    
+
     // Login
     loginToYourAccount: "Sign in to access your admin dashboard",
     rememberMe: "Remember me",
     forgotPassword: "Forgot password?",
     signIn: "Sign In",
     signingIn: "Signing in...",
-    
+
     // Two-Factor Authentication
     twoFactorAuth: "Two-Factor Authentication",
     enterVerificationCode: "We've sent a verification code to",
@@ -65,13 +65,11 @@ export const translations = {
     activeUsers: "Active Users",
     monthlyRevenue: "Monthly Revenue",
     activeServices: "Active Services",
-    completedBookings: "Completed Bookings",
     averageRating: "Average Rating",
-    serviceProviders: "Service Providers",
     recentBookings: "Recent Bookings",
     topServices: "Top Services",
     bookings: "bookings",
-    
+
     // Common Actions
     search: "Search",
     filter: "Filter",
@@ -83,7 +81,7 @@ export const translations = {
     cancel: "Cancel",
     update: "Update",
     actions: "Actions",
-    
+
     // Status
     active: "Active",
     inactive: "Inactive",
@@ -91,7 +89,7 @@ export const translations = {
     inProgress: "In Progress",
     completed: "Completed",
     cancelled: "Cancelled",
-    
+
     // User Management
     customerManagement: "Customer Management",
     serviceProviderManagement: "Service Provider Management",
@@ -108,16 +106,15 @@ export const translations = {
     superAdmin: "Super Admin",
     manager: "Manager",
     support: "Support",
-    
+
     // Services
     serviceName: "Service Name",
     category: "Category",
     provider: "Provider",
     price: "Price",
     duration: "Duration",
-    bookings: "Bookings",
     description: "Description",
-    
+
     // Profile
     profileSettings: "Profile Settings",
     currentPassword: "Current Password",
@@ -125,7 +122,7 @@ export const translations = {
     confirmPassword: "Confirm New Password",
     updateProfile: "Update Profile",
     logout: "Logout",
-    
+
     // Reports
     totalRevenue: "Total Revenue",
     dailyBookingReport: "Daily Booking Report",
@@ -136,13 +133,13 @@ export const translations = {
     generateReport: "Generate Report",
     exportExcel: "Export to Excel",
     exportCSV: "Export to CSV",
-    
+
     // Time periods
     last7Days: "Last 7 days",
     last30Days: "Last 30 days",
     last3Months: "Last 3 months",
     customRange: "Custom Range",
-    
+
     // Form fields
     firstName: "First Name",
     lastName: "Last Name",
@@ -154,7 +151,7 @@ export const translations = {
     companyName: "Company Name",
     specialization: "Specialization",
     experience: "Years of Experience",
-    
+
     // Misc
     noResults: "No results found",
     language: "Language",
@@ -199,11 +196,7 @@ export const translations = {
     localization: "الترجمة",
     security: "الأمان",
     settings: "الإعدادات",
-    contentManagement: "إدارة المحتوى",
-    reportsAnalytics: "التقارير والتحليلات",
-    adminUsers: "المستخدمون الإداريون",
-    settings: "الإعدادات",
-    
+
     // Dashboard
     dashboardOverview: "نظرة عامة على لوحة القيادة",
     welcome: "مرحباً بك في",
@@ -211,14 +204,14 @@ export const translations = {
     viewReports: "عرض التقارير",
     quickActions: "الإجراءات السريعة",
     todayActivity: "نشاط اليوم",
-    
+
     // Login (Arabic)
     loginToYourAccount: "قم بتسجيل الدخول للوصول إلى لوحة التحكم الخاصة بك",
     rememberMe: "تذكرني",
     forgotPassword: "هل نسيت كلمة المرور؟",
     signIn: "تسجيل الدخول",
     signingIn: "جاري تسجيل الدخول...",
-    
+
     // Two-Factor Authentication (Arabic)
     twoFactorAuth: "المصادقة الثنائية",
     enterVerificationCode: "لقد أرسلنا رمز التحقق إلى",
@@ -234,13 +227,11 @@ export const translations = {
     activeUsers: "المستخدمون النشطون",
     monthlyRevenue: "الإيرادات الشهرية",
     activeServices: "الخدمات النشطة",
-    completedBookings: "الحجوزات المكتملة",
     averageRating: "متوسط التقييم",
-    serviceProviders: "مقدمو الخدمات",
     recentBookings: "الحجوزات الأخيرة",
     topServices: "أفضل الخدمات",
     bookings: "حجوزات",
-    
+
     // Common Actions
     search: "بحث",
     filter: "تصفية",
@@ -252,7 +243,7 @@ export const translations = {
     cancel: "إلغاء",
     update: "تحديث",
     actions: "الإجراءات",
-    
+
     // Status
     active: "نشط",
     inactive: "غير نشط",
@@ -260,7 +251,7 @@ export const translations = {
     inProgress: "قيد التنفيذ",
     completed: "مكتمل",
     cancelled: "ملغي",
-    
+
     // User Management
     customerManagement: "إدارة العملاء",
     serviceProviderManagement: "إدارة مقدمي الخدمات",
@@ -277,16 +268,15 @@ export const translations = {
     superAdmin: "مدير عام",
     manager: "مدير",
     support: "الدعم الفني",
-    
+
     // Services
     serviceName: "اسم الخدمة",
     category: "الفئة",
     provider: "المقدم",
     price: "السعر",
     duration: "المدة",
-    bookings: "الحجوزات",
     description: "الوصف",
-    
+
     // Profile
     profileSettings: "إعدادات الملف الشخصي",
     currentPassword: "كلمة المرور الحالية",
@@ -294,7 +284,7 @@ export const translations = {
     confirmPassword: "تأكيد كلمة المرور الجديدة",
     updateProfile: "تحديث الملف الشخصي",
     logout: "تسجيل الخروج",
-    
+
     // Reports
     totalRevenue: "إجمالي الإيرادات",
     dailyBookingReport: "تقرير الحجوزات اليومية",
@@ -305,13 +295,13 @@ export const translations = {
     generateReport: "إنشاء التقرير",
     exportExcel: "تصدير إلى Excel",
     exportCSV: "تصدير إلى CSV",
-    
+
     // Time periods
     last7Days: "آخر 7 أيام",
     last30Days: "آخر 30 يوماً",
     last3Months: "آخر 3 أشهر",
     customRange: "نطاق مخصص",
-    
+
     // Form fields
     firstName: "الاسم الأول",
     lastName: "اسم العائلة",
@@ -323,7 +313,7 @@ export const translations = {
     companyName: "اسم الشركة",
     specialization: "التخصص",
     experience: "سنوات الخبرة",
-    
+
     // Misc
     noResults: "لا توجد نتائج",
     language: "اللغة",
