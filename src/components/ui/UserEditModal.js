@@ -12,7 +12,7 @@ import { useUpdateUser } from '../../hooks/useUsers';
 import { useQuery } from '@tanstack/react-query';
 import { roleService } from '../../services';
 
-const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
+const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType = false }) => {
   const { t } = useLocalization();
   const { assetUrl } = useUserContext();
   const updateUserMutation = useUpdateUser();
@@ -439,17 +439,29 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     User Type
                   </label>
-                  <select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select Type</option>
-                    <option value="admin">Admin</option>
-                    <option value="provider">Provider</option>
-                    <option value="customer">Customer</option>
-                  </select>
+                  {disableType ? (
+                    <>
+                      <input
+                        type="text"
+                        value={formData.type ? (formData.type === 'admin' ? 'Admin' : formData.type.charAt(0).toUpperCase() + formData.type.slice(1)) : ''}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                      />
+                      <input type="hidden" name="type" value={formData.type} />
+                    </>
+                  ) : (
+                    <select
+                      name="type"
+                      value={formData.type}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Type</option>
+                      <option value="admin">Admin</option>
+                      <option value="provider">Provider</option>
+                      <option value="customer">Customer</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>

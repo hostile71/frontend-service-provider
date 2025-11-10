@@ -27,6 +27,7 @@ import {
   TwoFactorAuth,
   Dashboard, 
   UserManagement, 
+  AdminUsers,
   ServiceProviders, 
   ServiceManagement, 
   Categories, 
@@ -76,35 +77,7 @@ const ContentManagement = () => {
   );
 };
 
-// Admin Users placeholder
-const AdminUsers = () => {
-  const { t } = useLocalization();
-  const { setModalType, setShowModal } = useAppContext();
-
-  const handleAddAdminUser = () => {
-    setModalType('admin-user');
-    setShowModal(true);
-  };
-
-  const adminColumns = [
-    t('name'), 
-    t('email'), 
-    t('role'), 
-    'Last Login', 
-    t('status'), 
-    'Permissions'
-  ];
-
-  return (
-    <DataTable
-      data={[]}
-      columns={adminColumns}
-      title={t('adminUsers')}
-      onAdd={handleAddAdminUser}
-      searchFields={['name', 'email', 'role']}
-    />
-  );
-};
+// AdminUsers page is provided in ./components/pages/AdminUsers
 
 // Protected Route Component - Redirect to login if not authenticated
 const ProtectedRoute = ({ children }) => {

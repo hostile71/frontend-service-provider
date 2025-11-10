@@ -11,7 +11,7 @@ import { useCreateUser } from '../../hooks/useUsers';
 import { useQuery } from '@tanstack/react-query';
 import { roleService } from '../../services';
 
-const UserAddModal = ({ isOpen, onClose, onSuccess }) => {
+const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', titleLabel, submitLabel }) => {
   const { t } = useLocalization();
   const createUserMutation = useCreateUser();
 
@@ -34,7 +34,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess }) => {
     address: '',
     password: '',
     password_confirmation: '',
-    type: 'customer', // Auto-selected for customer
+    type: defaultType, // Auto-selected type (customer/admin/etc)
     status: 'active',
     role_id: '',
   });
@@ -55,7 +55,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess }) => {
         address: '',
         password: '',
         password_confirmation: '',
-        type: 'customer',
+        type: defaultType,
         status: 'active',
         role_id: '',
       });
@@ -63,7 +63,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess }) => {
       setProfilePicturePreview(null);
       setErrors({});
     }
-  }, [isOpen]);
+  }, [isOpen, defaultType]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -218,14 +218,15 @@ const UserAddModal = ({ isOpen, onClose, onSuccess }) => {
 
   if (!isOpen) return null;
 
+  const modalTitle = titleLabel || (defaultType === 'admin' ? 'Add New Admin User' : 'Add New Customer');
+  const submitButtonLabel = submitLabel || (defaultType === 'admin' ? 'Create Admin User' : 'Create Customer');
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r">
-          <h3 className="text-xl font-semibold text-black">
-            Add New Customer
-          </h3>
+          <h3 className="text-xl font-semibold text-black">{modalTitle}</h3>
           <button 
             onClick={onClose} 
             className="p-2 hover:bg-white/20 rounded-lg transition-colors text-black"
@@ -411,12 +412,12 @@ const UserAddModal = ({ isOpen, onClose, onSuccess }) => {
                     User Type
                   </label>
                   <input
-                    type="text"
-                    value="Customer"
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                  />
-                  <input type="hidden" name="type" value="customer" />
+                      type="text"
+                      value={defaultType === 'admin' ? 'Admin' : 'Customer'}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                    />
+                    <input type="hidden" name="type" value={defaultType} />
                 </div>
 
                 <div>
@@ -526,7 +527,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess }) => {
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>Create Customer</span>
+                <span>{submitButtonLabel}</span>
               </>
             )}
           </button>

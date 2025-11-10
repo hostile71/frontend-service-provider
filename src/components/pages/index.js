@@ -23,3 +23,4 @@ export { default as Banners } from './Banners';
 export { default as NotificationsPage } from './NotificationsPage';
 export { default as Localization } from './Localization';
 export { default as Security } from './Security';
+export { default as AdminUsers } from './AdminUsers';
