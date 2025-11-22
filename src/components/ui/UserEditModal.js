@@ -73,17 +73,17 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
         certifications: user.certifications || '',
       });
       setProfilePicture(null);
-      
+
       // Set existing profile picture preview
       if (user.profile_picture) {
-        const profilePicUrl = user.profile_picture.startsWith('http') 
-          ? user.profile_picture 
+        const profilePicUrl = user.profile_picture.startsWith('http')
+          ? user.profile_picture
           : `${assetUrl}/${user.profile_picture}`;
         setProfilePicturePreview(profilePicUrl);
       } else {
         setProfilePicturePreview(null);
       }
-      
+
       setErrors({});
     }
   }, [user, assetUrl]);
@@ -126,7 +126,7 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
 
       setProfilePicture(file);
       setProfilePicturePreview(URL.createObjectURL(file));
-      
+
       // Clear error
       if (errors.profile_picture) {
         setErrors(prev => ({
@@ -139,11 +139,11 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
 
   const handleRemoveImage = () => {
     setProfilePicture(null);
-    
+
     // Reset to original profile picture
     if (user?.profile_picture) {
-      const profilePicUrl = user.profile_picture.startsWith('http') 
-        ? user.profile_picture 
+      const profilePicUrl = user.profile_picture.startsWith('http')
+        ? user.profile_picture
         : `${assetUrl}/${user.profile_picture}`;
       setProfilePicturePreview(profilePicUrl);
     } else {
@@ -193,7 +193,7 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
     try {
       // Create FormData for file upload
       const submitData = new FormData();
-      
+
       // Append all form fields (only non-empty values)
       if (formData.first_name) submitData.append('first_name', formData.first_name);
       if (formData.last_name) submitData.append('last_name', formData.last_name);
@@ -204,7 +204,7 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
       if (formData.type) submitData.append('type', formData.type);
       if (formData.status) submitData.append('status', formData.status);
       if (formData.role_id) submitData.append('role_id', formData.role_id);
-      
+
       // Password fields - only if password is being changed
       if (formData.password) {
         submitData.append('password', formData.password);
@@ -238,18 +238,18 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
       onClose();
     } catch (error) {
       console.error('Error updating user:', error);
-      
+
       // Handle validation errors from backend
       // Note: apiClient transforms errors to { status, message, errors, code, data }
       if (error.errors) {
         const backendErrors = error.errors;
         const formattedErrors = {};
-        
+
         Object.keys(backendErrors).forEach(key => {
           const errorValue = backendErrors[key];
           formattedErrors[key] = Array.isArray(errorValue) ? errorValue[0] : errorValue;
         });
-        
+
         setErrors(formattedErrors);
       } else if (error.message) {
         setErrors({ general: error.message });
@@ -267,8 +267,8 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
           <h3 className="text-xl font-semibold text-black">
             Edit {userType === 'provider' ? 'Service Provider' : 'Customer'}
           </h3>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-2 hover:bg-white/20 rounded-lg transition-colors text-black"
             disabled={updateUserMutation.isPending}
           >
@@ -342,9 +342,8 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
                     name="first_name"
                     value={formData.first_name}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.first_name ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.first_name ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.first_name && (
                     <p className="text-red-500 text-sm mt-1">{errors.first_name}</p>
@@ -360,9 +359,8 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
                     name="last_name"
                     value={formData.last_name}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.last_name ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.last_name ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.last_name && (
                     <p className="text-red-500 text-sm mt-1">{errors.last_name}</p>
@@ -378,9 +376,8 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.email && (
                     <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -396,9 +393,8 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
                     name="mobile_no"
                     value={formData.mobile_no}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.mobile_no ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.mobile_no ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.mobile_no && (
                     <p className="text-red-500 text-sm mt-1">{errors.mobile_no}</p>
@@ -515,9 +511,8 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.password ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="Leave blank to keep current password"
                   />
                   {errors.password && (
@@ -535,9 +530,8 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
                     name="password_confirmation"
                     value={formData.password_confirmation}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.password_confirmation ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password_confirmation ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="Confirm new password"
                   />
                   {errors.password_confirmation && (
@@ -625,7 +619,7 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
 
         {/* Footer */}
         <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button 
+          <button
             type="button"
             onClick={onClose}
             className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
@@ -633,7 +627,7 @@ const UserEditModal = ({ isOpen, onClose, user, userType, onSuccess, disableType
           >
             Cancel
           </button>
-          <button 
+          <button
             type="submit"
             onClick={handleSubmit}
             disabled={updateUserMutation.isPending}

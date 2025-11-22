@@ -103,7 +103,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
 
       setProfilePicture(file);
       setProfilePicturePreview(URL.createObjectURL(file));
-      
+
       // Clear error
       if (errors.profile_picture) {
         setErrors(prev => ({
@@ -161,7 +161,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
     try {
       // Create FormData for file upload
       const submitData = new FormData();
-      
+
       // Append all form fields
       submitData.append('first_name', formData.first_name);
       submitData.append('last_name', formData.last_name);
@@ -171,7 +171,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
       submitData.append('status', formData.status);
       submitData.append('password', formData.password);
       submitData.append('password_confirmation', formData.password_confirmation);
-      
+
       // Optional fields
       if (formData.identification_number) submitData.append('identification_number', formData.identification_number);
       if (formData.address) submitData.append('address', formData.address);
@@ -193,18 +193,18 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
       console.log('Error response:', error.response);
       console.log('Error response data:', error.response?.data);
       console.log('Error response errors:', error.response?.data?.errors);
-      
+
       // Handle validation errors from backend
       // Note: apiClient transforms errors to { status, message, errors, code, data }
       if (error.errors) {
         const backendErrors = error.errors;
         const formattedErrors = {};
-        
+
         Object.keys(backendErrors).forEach(key => {
           const errorValue = backendErrors[key];
           formattedErrors[key] = Array.isArray(errorValue) ? errorValue[0] : errorValue;
         });
-        
+
         console.log('Formatted errors:', formattedErrors);
         setErrors(formattedErrors);
       } else if (error.message) {
@@ -227,8 +227,8 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r">
           <h3 className="text-xl font-semibold text-black">{modalTitle}</h3>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-2 hover:bg-white/20 rounded-lg transition-colors text-black"
             disabled={createUserMutation.isPending}
           >
@@ -309,9 +309,8 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
                     name="first_name"
                     value={formData.first_name}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.first_name ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.first_name ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.first_name && (
                     <p className="text-red-500 text-sm mt-1">{errors.first_name}</p>
@@ -327,9 +326,8 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
                     name="last_name"
                     value={formData.last_name}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.last_name ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.last_name ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.last_name && (
                     <p className="text-red-500 text-sm mt-1">{errors.last_name}</p>
@@ -345,9 +343,8 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.email && (
                     <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -363,9 +360,8 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
                     name="mobile_no"
                     value={formData.mobile_no}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.mobile_no ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.mobile_no ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.mobile_no && (
                     <p className="text-red-500 text-sm mt-1">{errors.mobile_no}</p>
@@ -381,9 +377,8 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
                     name="identification_number"
                     value={formData.identification_number}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.identification_number ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.identification_number ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.identification_number && (
                     <p className="text-red-500 text-sm mt-1">{errors.identification_number}</p>
@@ -412,12 +407,12 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
                     User Type
                   </label>
                   <input
-                      type="text"
-                      value={defaultType === 'admin' ? 'Admin' : 'Customer'}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                    />
-                    <input type="hidden" name="type" value={defaultType} />
+                    type="text"
+                    value={defaultType === 'admin' ? 'Admin' : 'Customer'}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                  />
+                  <input type="hidden" name="type" value={defaultType} />
                 </div>
 
                 <div>
@@ -471,9 +466,8 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.password ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.password && (
                     <p className="text-red-500 text-sm mt-1">{errors.password}</p>
@@ -490,9 +484,8 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
                     name="password_confirmation"
                     value={formData.password_confirmation}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.password_confirmation ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password_confirmation ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.password_confirmation && (
                     <p className="text-red-500 text-sm mt-1">{errors.password_confirmation}</p>
@@ -505,7 +498,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
 
         {/* Footer */}
         <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button 
+          <button
             type="button"
             onClick={onClose}
             className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
@@ -513,7 +506,7 @@ const UserAddModal = ({ isOpen, onClose, onSuccess, defaultType = 'customer', ti
           >
             Cancel
           </button>
-          <button 
+          <button
             type="submit"
             onClick={handleSubmit}
             disabled={createUserMutation.isPending}

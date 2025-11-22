@@ -22,17 +22,19 @@ const queryClient = new QueryClient({
   },
 });
 import Layout from './components/layout/Layout';
-import { 
+import {
   Login,
   TwoFactorAuth,
-  Dashboard, 
-  UserManagement, 
+  Dashboard,
+  UserManagement,
   AdminUsers,
-  ServiceProviders, 
-  ServiceManagement, 
-  Categories, 
-  BookingManagement, 
-  Reports, 
+  ServiceProviders,
+  ServiceManagement,
+  Categories,
+  CategoryManagement,
+  SubcategoryManagement,
+  BookingManagement,
+  Reports,
   Settings,
   ServiceRequests,
   PendingBookings,
@@ -111,31 +113,31 @@ const ServicePlatformAdmin = () => {
     <>
       <Routes>
         {/* Public Routes - Redirect to dashboard if already authenticated */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             <PublicRoute>
               <Login />
             </PublicRoute>
-          } 
+          }
         />
-        <Route 
-          path="/verify-2fa" 
+        <Route
+          path="/verify-2fa"
           element={
             <PublicRoute>
               <TwoFactorAuth />
             </PublicRoute>
-          } 
+          }
         />
-        
+
         {/* Protected Routes - Redirect to login if not authenticated */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             <ProtectedRoute>
               <Navigate to="/dashboard" replace />
             </ProtectedRoute>
-          } 
+          }
         />
         <Route
           path="/dashboard"
@@ -152,7 +154,8 @@ const ServicePlatformAdmin = () => {
         <Route path="/users" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><UserManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/providers" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceProviders /></Layout></div></ProtectedRoute>} />
         <Route path="/services" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceManagement /></Layout></div></ProtectedRoute>} />
-        <Route path="/categories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Categories /></Layout></div></ProtectedRoute>} />
+        <Route path="/categories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><CategoryManagement /></Layout></div></ProtectedRoute>} />
+        <Route path="/subcategories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><SubcategoryManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/service-requests" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceRequests /></Layout></div></ProtectedRoute>} />
         <Route path="/bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><BookingManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/pending-bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><PendingBookings /></Layout></div></ProtectedRoute>} />
@@ -179,17 +182,17 @@ const ServicePlatformAdmin = () => {
       {/* Global Modals - only show when authenticated */}
       {localStorage.getItem('authToken') && (
         <>
-          <AddItemModal 
-            isOpen={showModal} 
-            onClose={() => setShowModal(false)} 
+          <AddItemModal
+            isOpen={showModal}
+            onClose={() => setShowModal(false)}
             type={modalType}
           />
-          <ProfileSettingsModal 
-            isOpen={showProfileSettings} 
-            onClose={() => setShowProfileSettings(false)} 
+          <ProfileSettingsModal
+            isOpen={showProfileSettings}
+            onClose={() => setShowProfileSettings(false)}
           />
-          <DetailViewModal 
-            isOpen={showDetailView} 
+          <DetailViewModal
+            isOpen={showDetailView}
             onClose={closeDetailView}
             item={detailViewItem}
             type={detailViewType}

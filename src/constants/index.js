@@ -1,9 +1,9 @@
-import { 
-  Users, 
-  Settings, 
-  BarChart3, 
-  Shield, 
-  FileText, 
+import {
+  Users,
+  Settings,
+  BarChart3,
+  Shield,
+  FileText,
   Grid3X3,
   Calendar,
   UserCheck,
@@ -29,51 +29,52 @@ import {
 } from 'lucide-react';
 
 export const MENU_ITEMS = [
-  { 
-    id: 'dashboard', 
-    labelKey: 'dashboard', 
+  {
+    id: 'dashboard',
+    labelKey: 'dashboard',
     icon: BarChart3,
     path: '/dashboard'
   },
-  { 
-    id: 'user-management', 
-    labelKey: 'userManagement', 
+  {
+    id: 'user-management',
+    labelKey: 'userManagement',
     icon: Users,
     children: [
-  { id: 'users', labelKey: 'customers', icon: User, path: '/users' },
-  { id: 'providers', labelKey: 'serviceProviders', icon: UserCheck, path: '/providers' },
-  { id: 'admin-users', labelKey: 'adminUsers', icon: Shield, path: '/admin-users' }
+      { id: 'users', labelKey: 'customers', icon: User, path: '/users' },
+      { id: 'providers', labelKey: 'serviceProviders', icon: UserCheck, path: '/providers' },
+      { id: 'admin-users', labelKey: 'adminUsers', icon: Shield, path: '/admin-users' }
     ]
   },
-  { 
-    id: 'services', 
-    labelKey: 'serviceManagement', 
+  {
+    id: 'services',
+    labelKey: 'serviceManagement',
     icon: Grid3X3,
     children: [
-  { id: 'service-list', labelKey: 'allServices', icon: Briefcase, path: '/services' },
-  { id: 'categories', labelKey: 'categories', icon: Package, path: '/categories' },
+      { id: 'service-list', labelKey: 'allServices', icon: Briefcase, path: '/services' },
+      { id: 'categories', labelKey: 'categories', icon: Package, path: '/categories' },
+      { id: 'subcategories', labelKey: 'subcategories', icon: Package, path: '/subcategories' },
       // { id: 'service-requests', labelKey: 'serviceRequests', icon: FileText, path: 'service-requests' }
     ]
   },
-  { 
-    id: 'bookings', 
-    labelKey: 'bookingManagement', 
+  {
+    id: 'bookings',
+    labelKey: 'bookingManagement',
     icon: Calendar,
     children: [
-  { id: 'all-bookings', labelKey: 'allBookings', icon: Calendar, path: '/bookings' },
-  { id: 'pending-bookings', labelKey: 'pendingBookings', icon: Clock, path: '/pending-bookings' },
-  { id: 'completed-bookings', labelKey: 'completedBookings', icon: CheckCircle, path: '/completed-bookings' }
+      { id: 'all-bookings', labelKey: 'allBookings', icon: Calendar, path: '/bookings' },
+      { id: 'pending-bookings', labelKey: 'pendingBookings', icon: Clock, path: '/pending-bookings' },
+      { id: 'completed-bookings', labelKey: 'completedBookings', icon: CheckCircle, path: '/completed-bookings' }
     ]
   },
-  { 
-    id: 'reports', 
-    labelKey: 'reportsAnalytics', 
+  {
+    id: 'reports',
+    labelKey: 'reportsAnalytics',
     icon: BarChart3,
     children: [
-  { id: 'dashboard-reports', labelKey: 'dashboardReports', icon: PieChart, path: '/reports' },
-  { id: 'user-analytics', labelKey: 'userAnalytics', icon: Users, path: '/user-analytics' },
-  { id: 'revenue-reports', labelKey: 'revenueReports', icon: TrendingUp, path: '/revenue-reports' },
-  { id: 'service-analytics', labelKey: 'serviceAnalytics', icon: FileBarChart, path: '/service-analytics' }
+      { id: 'dashboard-reports', labelKey: 'dashboardReports', icon: PieChart, path: '/reports' },
+      { id: 'user-analytics', labelKey: 'userAnalytics', icon: Users, path: '/user-analytics' },
+      { id: 'revenue-reports', labelKey: 'revenueReports', icon: TrendingUp, path: '/revenue-reports' },
+      { id: 'service-analytics', labelKey: 'serviceAnalytics', icon: FileBarChart, path: '/service-analytics' }
     ]
   },
   // { 
@@ -86,14 +87,14 @@ export const MENU_ITEMS = [
   //     { id: 'notifications', labelKey: 'notifications', icon: Bell, path: 'notifications' }
   //   ]
   // },
-  { 
-    id: 'system', 
-    labelKey: 'systemSettings', 
+  {
+    id: 'system',
+    labelKey: 'systemSettings',
     icon: Settings,
     children: [
-  { id: 'general-settings', labelKey: 'generalSettings', icon: Settings, path: '/settings' },
-  { id: 'localization', labelKey: 'localization', icon: Globe, path: '/localization' },
-  { id: 'security', labelKey: 'security', icon: Lock, path: '/security' }
+      { id: 'general-settings', labelKey: 'generalSettings', icon: Settings, path: '/settings' },
+      { id: 'localization', labelKey: 'localization', icon: Globe, path: '/localization' },
+      { id: 'security', labelKey: 'security', icon: Lock, path: '/security' }
     ]
   }
 ];

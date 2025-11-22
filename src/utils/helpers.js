@@ -14,8 +14,8 @@ export {
 // Filter function for search
 export const filterData = (data, searchTerm, searchFields) => {
   if (!searchTerm) return data;
-  return data.filter(item => 
-    searchFields.some(field => 
+  return data.filter(item =>
+    searchFields.some(field =>
       item[field]?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
@@ -23,6 +23,41 @@ export const filterData = (data, searchTerm, searchFields) => {
 
 // Get field value for table columns
 export const getFieldValue = (item, columnName, t) => {
+  // Handle special cases for nested objects
+  if (columnName === t('serviceName')) {
+    return item.title || item.name || '-';
+  }
+
+  if (columnName === t('category')) {
+    // For services: sub_category.category.name
+    if (item.sub_category?.category?.name) {
+      return item.sub_category.category.name;
+    }
+    // For categories/subcategories: direct name
+    if (typeof item.category === 'string') {
+      return item.category;
+    }
+    if (item.category?.name) {
+      return item.category.name;
+    }
+    return '-';
+  }
+
+  if (columnName === t('provider')) {
+    if (!item.provider) return '-';
+    // If provider is an object
+    if (typeof item.provider === 'object') {
+      const fullName = `${item.provider.first_name || ''} ${item.provider.last_name || ''}`.trim();
+      // Prefer company name + business license when available, otherwise fall back to full name or email
+      if (item.provider.company_name) {
+        return `${item.provider.company_name}${item.provider.business_license ? ` — ${item.provider.business_license}` : ''}`;
+      }
+      return fullName || item.provider.email || '-';
+    }
+    // If provider is a string
+    return item.provider;
+  }
+
   // Direct field mappings
   const fieldMappings = {
     // User fields
@@ -36,19 +71,16 @@ export const getFieldValue = (item, columnName, t) => {
     [t('totalBookings')]: 'totalBookings',
     'Completed Services': 'completedServices',
     [t('rating')]: 'rating',
-    
+
     // Service fields
-    [t('serviceName')]: 'name',
-    [t('category')]: 'category',
-    [t('provider')]: 'provider',
     [t('price')]: 'price',
     [t('duration')]: 'duration',
     [t('bookings')]: 'bookings',
-    
+
     // Category fields
     'Service Count': 'serviceCount',
     [t('description')]: 'description',
-    
+
     // Booking fields
     [t('customer')]: 'customer',
     'Service': 'service',
@@ -56,27 +88,27 @@ export const getFieldValue = (item, columnName, t) => {
     'Time': 'time',
     'Location': 'location',
     'Amount': 'amount',
-    
+
     // Revenue Reports fields
     'Month': 'month',
     'Revenue': 'revenue',
     'Commissions': 'commissions',
     'Growth': 'growth',
     'Orders': 'orders',
-    
+
     // Service Analytics fields
     'Category': 'category',
     'Requests': 'requests',
     'Completed': 'completed',
     'Success Rate': 'successRate',
     'Avg Rating': 'avgRating',
-    
+
     // User Analytics fields
     'Metric': 'metric',
     'Value': 'value',
     'Change': 'change',
     'Trend': 'trend',
-    
+
     // Payments & Invoices fields
     'Invoice ID': 'invoiceId',
     'Customer': 'customer',
@@ -84,19 +116,19 @@ export const getFieldValue = (item, columnName, t) => {
     'Payment Method': 'paymentMethod',
     'Transaction ID': 'transactionId',
     'Type': 'type',
-    
+
     // Commission fields
     'Provider': 'provider',
     'Commission': 'commission',
     'Rate': 'rate',
     'Period': 'period',
-    
+
     // Notification fields
     'Title': 'title',
     'Message': 'message',
     'Sent Date': 'sentDate',
     'Recipients': 'recipients',
-    
+
     // Banner fields
     'Image': 'image',
     'Active': 'active',
@@ -108,18 +140,18 @@ export const getFieldValue = (item, columnName, t) => {
   if (fieldKey && item[fieldKey] !== undefined) {
     return item[fieldKey];
   }
-  
+
   // Fallback: try to match field directly if no mapping found
   const directKey = columnName.toLowerCase().replace(/\s+/g, '');
   if (item[directKey] !== undefined) {
     return item[directKey];
   }
-  
+
   // Last resort: try exact column name match
   if (item[columnName] !== undefined) {
     return item[columnName];
   }
-  
+
   return null;
 };
 
@@ -138,7 +170,7 @@ export const getStatusConfig = (status) => {
     completed: { color: 'bg-green-100 text-green-800' },
     cancelled: { color: 'bg-red-100 text-red-800' }
   };
-  
+
   return statusConfigs[status] || { color: 'bg-gray-100 text-gray-800' };
 };
 

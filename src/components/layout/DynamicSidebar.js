@@ -5,6 +5,7 @@ import { useLocalization } from '../../contexts/LocalizationContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { useUser } from '../../contexts/UserContext';
+import { MENU_ITEMS } from '../../constants';
 import getIconComponent from '../../utils/iconMapper';
 
 const DynamicSidebar = () => {
@@ -20,6 +21,9 @@ const DynamicSidebar = () => {
   const { menus, menusLoading, menusError, isAuthenticated } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Use MENU_ITEMS fallback if API menus are empty or failed
+  const menuItems = (menus && menus.length > 0) ? menus : MENU_ITEMS;
 
   const [hoveredItem, setHoveredItem] = React.useState(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ top: 0, left: 0 });
@@ -38,17 +42,25 @@ const DynamicSidebar = () => {
     if (item.children) {
       toggleMenu(item.id);
     } else if (item.path) {
-      navigate(`/${item.path}`);
+      // Handle both formats: with or without leading slash
+      const path = item.path.startsWith('/') ? item.path : `/${item.path}`;
+      navigate(path);
     }
   };
 
   const renderMenuItem = (item, isChild = false) => {
-    const Icon = getIconComponent(item.icon);
+    // Handle both icon formats: component (from constants) or string (from API)
+    const Icon = typeof item.icon === 'string' ? getIconComponent(item.icon) : item.icon;
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedMenus[item.id];
-    const isActive = location.pathname === `/${item.path}`;
+    // Handle both path formats
+    const itemPath = item.path ? (item.path.startsWith('/') ? item.path : `/${item.path}`) : '';
+    const isActive = location.pathname === itemPath;
     // Check if any child is active to highlight parent
-    const isChildActive = hasChildren && item.children.some(child => location.pathname === `/${child.path}`);
+    const isChildActive = hasChildren && item.children.some(child => {
+      const childPath = child.path ? (child.path.startsWith('/') ? child.path : `/${child.path}`) : '';
+      return location.pathname === childPath;
+    });
     const shouldHighlight = isActive || isChildActive;
 
     const handleMouseEnter = (event) => {
@@ -57,7 +69,7 @@ const DynamicSidebar = () => {
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
-        
+
         const rect = event.currentTarget.getBoundingClientRect();
         setTooltipPosition({
           top: rect.top,
@@ -83,11 +95,10 @@ const DynamicSidebar = () => {
             onClick={() => handleMenuClick(item)}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
-              shouldHighlight 
-                ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
+            className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${shouldHighlight
+                ? `sidebar-item-active ${isRTL ? 'rtl' : ''}`
                 : 'text-theme-text-secondary hover:text-theme-text'
-            } ${sidebarCollapsed ? 'justify-center' : ''} ${isChild ? 'pl-8' : ''}`}
+              } ${sidebarCollapsed ? 'justify-center' : ''} ${isChild ? 'pl-8' : ''}`}
             title={sidebarCollapsed ? t(item.labelKey) : ''}
           >
             <Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : (isRTL ? 'ml-3' : 'mr-3')}`} />
@@ -109,18 +120,17 @@ const DynamicSidebar = () => {
         ) : (
           <Link
             to={`/${item.path}`}
-            className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
-              shouldHighlight 
-                ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
+            className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${shouldHighlight
+                ? `sidebar-item-active ${isRTL ? 'rtl' : ''}`
                 : 'text-theme-text-secondary hover:text-theme-text'
-            } ${sidebarCollapsed ? 'justify-center' : ''} ${isChild ? 'pl-8' : ''}`}
+              } ${sidebarCollapsed ? 'justify-center' : ''} ${isChild ? 'pl-8' : ''}`}
             title={sidebarCollapsed ? t(item.labelKey) : ''}
           >
             <Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : (isRTL ? 'ml-3' : 'mr-3')}`} />
             {!sidebarCollapsed && <span className="truncate flex-1">{t(item.labelKey)}</span>}
           </Link>
         )}
-        
+
         {/* Render children if expanded and not collapsed */}
         {hasChildren && isExpanded && !sidebarCollapsed && (
           <div className="bg-theme-bg">
@@ -134,9 +144,8 @@ const DynamicSidebar = () => {
   // Loading state
   if (menusLoading && isAuthenticated) {
     return (
-      <div className={`hidden lg:flex flex-col bg-theme-sidebar border-theme-border shadow-lg transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      }`}>
+      <div className={`hidden lg:flex flex-col bg-theme-sidebar border-theme-border shadow-lg transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}>
         <div className="flex items-center justify-center h-full">
           <Loader2 className="w-8 h-8 animate-spin text-theme-primary" />
         </div>
@@ -147,9 +156,8 @@ const DynamicSidebar = () => {
   // Error state
   if (menusError && isAuthenticated) {
     return (
-      <div className={`hidden lg:flex flex-col bg-theme-sidebar border-theme-border shadow-lg transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      }`}>
+      <div className={`hidden lg:flex flex-col bg-theme-sidebar border-theme-border shadow-lg transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}>
         <div className="flex items-center justify-center h-full p-4">
           <p className="text-red-500 text-sm text-center">Failed to load menu</p>
         </div>
@@ -160,19 +168,18 @@ const DynamicSidebar = () => {
   // Not authenticated - show empty sidebar
   if (!isAuthenticated || menus.length === 0) {
     return (
-      <div className={`hidden lg:flex flex-col bg-theme-sidebar border-theme-border shadow-lg transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      }`}>
+      <div className={`hidden lg:flex flex-col bg-theme-sidebar border-theme-border shadow-lg transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}>
         <div className="flex items-center justify-between p-4 border-b border-theme-border">
           {!sidebarCollapsed && (
             <h1 className="text-xl font-bold text-theme-text">{t('appName')}</h1>
           )}
-          <button 
+          <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="p-2 rounded-md hover:bg-theme-hover text-theme-text transition-colors"
           >
-            {sidebarCollapsed ? 
-              (isRTL ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />) : 
+            {sidebarCollapsed ?
+              (isRTL ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />) :
               (isRTL ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />)
             }
           </button>
@@ -187,24 +194,23 @@ const DynamicSidebar = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className={`hidden lg:flex flex-col bg-theme-sidebar border-theme-border shadow-lg transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      }`}>
+      <div className={`hidden lg:flex flex-col bg-theme-sidebar border-theme-border shadow-lg transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}>
         <div className="flex items-center justify-between p-4 border-b border-theme-border">
           {!sidebarCollapsed && (
             <h1 className="text-xl font-bold text-theme-text">{t('appName')}</h1>
           )}
-          <button 
+          <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="p-2 rounded-md hover:bg-theme-hover text-theme-text transition-colors"
           >
-            {sidebarCollapsed ? 
-              (isRTL ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />) : 
+            {sidebarCollapsed ?
+              (isRTL ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />) :
               (isRTL ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />)
             }
           </button>
         </div>
-        
+
         <nav className="mt-4 flex-1 overflow-y-auto">
           {menus.map((item) => renderMenuItem(item))}
         </nav>
@@ -214,14 +220,14 @@ const DynamicSidebar = () => {
       <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:hidden fixed inset-y-0 ${isRTL ? 'right-0' : 'left-0'} z-50 w-64 bg-theme-sidebar border-theme-border shadow-lg transition-colors duration-200`}>
         <div className="flex items-center justify-between p-4 border-b border-theme-border">
           <h1 className="text-xl font-bold text-theme-text">{t('appName')}</h1>
-          <button 
+          <button
             onClick={() => setSidebarOpen(false)}
             className="p-2 rounded-md hover:bg-theme-hover text-theme-text transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <nav className="mt-4 overflow-y-auto h-full pb-20">
           {menusLoading ? (
             <div className="flex items-center justify-center p-8">
@@ -231,17 +237,16 @@ const DynamicSidebar = () => {
             menus.map((item) => {
               const Icon = getIconComponent(item.icon);
               const hasChildren = item.children && item.children.length > 0;
-              
+
               return (
                 <div key={item.id}>
                   {hasChildren ? (
                     <button
                       onClick={() => toggleMenu(item.id)}
-                      className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
-                        (location.pathname === `/${item.path}` || (item.children && item.children.some(child => location.pathname === `/${child.path}`)))
-                          ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
+                      className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${(location.pathname === `/${item.path}` || (item.children && item.children.some(child => location.pathname === `/${child.path}`)))
+                          ? `sidebar-item-active ${isRTL ? 'rtl' : ''}`
                           : 'text-theme-text-secondary hover:text-theme-text'
-                      }`}
+                        }`}
                     >
                       <Icon className={`w-5 h-5 ${isRTL ? 'ml-3' : 'mr-3'}`} />
                       <span className="truncate flex-1">{t(item.labelKey)}</span>
@@ -257,17 +262,16 @@ const DynamicSidebar = () => {
                     <Link
                       to={`/${item.path}`}
                       onClick={() => setSidebarOpen(false)}
-                      className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
-                        location.pathname === `/${item.path}`
-                          ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
+                      className={`sidebar-menu-item w-full flex items-center px-4 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${location.pathname === `/${item.path}`
+                          ? `sidebar-item-active ${isRTL ? 'rtl' : ''}`
                           : 'text-theme-text-secondary hover:text-theme-text'
-                      }`}
+                        }`}
                     >
                       <Icon className={`w-5 h-5 ${isRTL ? 'ml-3' : 'mr-3'}`} />
                       <span className="truncate flex-1">{t(item.labelKey)}</span>
                     </Link>
                   )}
-                  
+
                   {/* Mobile children */}
                   {hasChildren && expandedMenus[item.id] && (
                     <div className="bg-theme-bg">
@@ -278,11 +282,10 @@ const DynamicSidebar = () => {
                             key={child.id}
                             to={`/${child.path}`}
                             onClick={() => setSidebarOpen(false)}
-                            className={`sidebar-menu-item w-full flex items-center px-8 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${
-                              location.pathname === `/${child.path}`
-                                ? `sidebar-item-active ${isRTL ? 'rtl' : ''}` 
+                            className={`sidebar-menu-item w-full flex items-center px-8 py-3 ${isRTL ? 'text-right' : 'text-left'} hover:bg-theme-hover transition-colors ${location.pathname === `/${child.path}`
+                                ? `sidebar-item-active ${isRTL ? 'rtl' : ''}`
                                 : 'text-theme-text-secondary hover:text-theme-text'
-                            }`}
+                              }`}
                           >
                             <ChildIcon className={`w-4 h-4 ${isRTL ? 'ml-3' : 'mr-3'}`} />
                             {t(child.labelKey)}
@@ -300,7 +303,7 @@ const DynamicSidebar = () => {
 
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -308,7 +311,7 @@ const DynamicSidebar = () => {
 
       {/* Collapsed sidebar tooltip */}
       {sidebarCollapsed && hoveredItem && (
-        <div 
+        <div
           className="fixed bg-white border border-gray-200 rounded-lg shadow-xl py-1 min-w-48 z-[1000]"
           style={{
             top: tooltipPosition.top,
@@ -329,9 +332,9 @@ const DynamicSidebar = () => {
           {(() => {
             const item = menus.find(menuItem => menuItem.id === hoveredItem);
             if (!item || !item.children) return null;
-            
+
             const ItemIcon = getIconComponent(item.icon);
-            
+
             return (
               <>
                 <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
@@ -349,11 +352,10 @@ const DynamicSidebar = () => {
                         navigate(`/${child.path}`);
                         setHoveredItem(null);
                       }}
-                      className={`w-full flex items-center px-3 py-2 text-left hover:bg-theme-hover transition-colors text-sm cursor-pointer ${
-                        location.pathname === `/${child.path}`
-                          ? 'bg-theme-primary-light text-theme-primary font-medium' 
+                      className={`w-full flex items-center px-3 py-2 text-left hover:bg-theme-hover transition-colors text-sm cursor-pointer ${location.pathname === `/${child.path}`
+                          ? 'bg-theme-primary-light text-theme-primary font-medium'
                           : 'text-gray-700 hover:text-theme-primary'
-                      }`}
+                        }`}
                     >
                       <ChildIcon className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                       <span>{t(child.labelKey)}</span>

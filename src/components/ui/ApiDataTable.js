@@ -25,11 +25,11 @@ import RatingStars from '../ui/RatingStars';
  * @param {string} itemType - Type of items (for modal)
  * @param {Function} renderCustomCell - Custom cell renderer
  */
-const ApiDataTable = ({ 
+const ApiDataTable = ({
   data = [],
   pagination = null,
-  columns = [], 
-  title = '', 
+  columns = [],
+  title = '',
   onAdd = null,
   onPageChange = null,
   onSearch = null,
@@ -44,7 +44,7 @@ const ApiDataTable = ({
   const { t, isRTL } = useLocalization();
   const { hasPermission } = useUser();
   const { openDetailView, setModalType, setShowModal, setEditItem } = useAppContext();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
@@ -114,18 +114,18 @@ const ApiDataTable = ({
     const pages = [];
     const maxVisiblePages = 5;
     const halfVisible = Math.floor(maxVisiblePages / 2);
-    
+
     let startPage = Math.max(1, current_page - halfVisible);
     let endPage = Math.min(last_page, startPage + maxVisiblePages - 1);
-    
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
-    
+
     return pages;
   };
 
@@ -140,19 +140,19 @@ const ApiDataTable = ({
     if (fieldKey.includes('status') || column === t('status')) {
       return <StatusBadge status={value} />;
     }
-    
+
     if (fieldKey.includes('price') || fieldKey.includes('amount') || column === t('price')) {
       return value !== null && value !== undefined ? <span className="font-medium">{value} OMR</span> : '-';
     }
-    
+
     if (fieldKey.includes('rating') || column === t('rating')) {
       return value && <RatingStars rating={value} />;
     }
-    
+
     if (column === 'Growth' || column === 'Success Rate') {
       return value !== null && value !== undefined ? <span className="text-sm">{value}%</span> : '-';
     }
-    
+
     return <span className="text-sm text-gray-900">{value !== null && value !== undefined ? value : '-'}</span>;
   };
 
@@ -181,7 +181,7 @@ const ApiDataTable = ({
               {t('filter')}
             </button>
             {onAdd && canCreate && (
-              <button 
+              <button
                 onClick={onAdd}
                 className="flex items-center justify-center px-4 py-2 btn-theme-primary rounded-lg whitespace-nowrap"
               >
@@ -192,9 +192,9 @@ const ApiDataTable = ({
           </div>
         </div>
       </div>
-      
-  {/* Table */}
-  <div className="overflow-x-auto thin-scrollbar">
+
+      {/* Table */}
+      <div className="overflow-x-auto thin-scrollbar">
         <table className={`w-full ${isRTL ? 'table-rtl' : ''}`}>
           <thead className="bg-gray-50">
             <tr>
@@ -232,7 +232,7 @@ const ApiDataTable = ({
                   {columns.map((column, cellIndex) => {
                     const value = getFieldValue(item, column, t);
                     const fieldKey = column.toLowerCase().replace(/\s+/g, '');
-                    
+
                     return (
                       <td key={cellIndex} className={`px-4 md:px-6 py-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                         {renderCellContent(item, column, value, fieldKey)}
@@ -243,7 +243,7 @@ const ApiDataTable = ({
                     <td className={`px-4 md:px-6 py-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                       <div className={`flex items-center space-x-1 md:space-x-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
                         {canView && (
-                          <button 
+                          <button
                             onClick={() => handleViewClick(item)}
                             className="p-1.5 md:p-2 text-gray-400 hover:text-blue-600 rounded transition-colors"
                             title={t('view')}
@@ -252,7 +252,7 @@ const ApiDataTable = ({
                           </button>
                         )}
                         {canEdit && (
-                          <button 
+                          <button
                             onClick={() => handleEditClick(item)}
                             className="p-1.5 md:p-2 text-gray-400 hover:text-green-600 rounded transition-colors"
                             title={t('edit')}
@@ -261,7 +261,7 @@ const ApiDataTable = ({
                           </button>
                         )}
                         {canDelete && (
-                          <button 
+                          <button
                             onClick={() => handleDeleteClick(item)}
                             className="p-1.5 md:p-2 text-gray-400 hover:text-red-600 rounded transition-colors"
                             title={t('delete')}
@@ -278,7 +278,7 @@ const ApiDataTable = ({
           </tbody>
         </table>
       </div>
-      
+
       {/* API Pagination */}
       {pagination && pagination.total > 0 && (
         <div className="px-4 py-4 border-t border-gray-200 bg-white">
@@ -304,7 +304,7 @@ const ApiDataTable = ({
                 <span className="text-sm text-gray-700">per page</span>
               </div>
             </div>
-            
+
             {/* Pagination controls */}
             {pagination.last_page > 1 && (
               <div className="flex items-center space-x-1">
@@ -317,7 +317,7 @@ const ApiDataTable = ({
                 >
                   <ChevronsLeft className="w-4 h-4" />
                 </button>
-                
+
                 {/* Previous page */}
                 <button
                   onClick={() => handlePageClick(pagination.current_page - 1)}
@@ -327,24 +327,23 @@ const ApiDataTable = ({
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                
+
                 {/* Page numbers */}
                 <div className="flex items-center space-x-1">
                   {getPageNumbers().map((pageNum) => (
                     <button
                       key={pageNum}
                       onClick={() => handlePageClick(pageNum)}
-                      className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-                        pagination.current_page === pageNum
+                      className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${pagination.current_page === pageNum
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-700 hover:bg-gray-100'
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
                   ))}
                 </div>
-                
+
                 {/* Next page */}
                 <button
                   onClick={() => handlePageClick(pagination.current_page + 1)}
@@ -354,7 +353,7 @@ const ApiDataTable = ({
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
-                
+
                 {/* Last page */}
                 <button
                   onClick={() => handlePageClick(pagination.last_page)}

@@ -45,6 +45,14 @@ export const API_ENDPOINTS = {
     UPDATE: (id) => `/api/categories/${id}`,
     DELETE: (id) => `/api/categories/${id}`,
   },
+  // Subcategories (nested under categories or standalone)
+  SUBCATEGORIES: {
+    LIST: '/api/sub-categories',
+    GET: (id) => `/api/sub-categories/${id}`,
+    CREATE: '/api/sub-categories',
+    UPDATE: (id) => `/api/sub-categories/${id}`,
+    DELETE: (id) => `/api/sub-categories/${id}`,
+  },
   // Service Providers
   PROVIDERS: {
     LIST: '/api/providers',

@@ -18,7 +18,7 @@ const UserManagement = () => {
   const { assetUrl } = useUser(); // Get asset URL from user context
   const toast = useToast();
   const queryClient = useQueryClient();
-  
+
   // State for pagination and search
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
@@ -92,11 +92,11 @@ const UserManagement = () => {
   console.log('📊 Current query params:', { currentPage, perPage, searchQuery });
 
   const customerColumns = [
-    t('name'), 
-    t('email'), 
-    t('phone'), 
+    t('name'),
+    t('email'),
+    t('phone'),
     'Role',
-    t('status'), 
+    t('status'),
     'Join Date'
   ];
 
@@ -111,8 +111,8 @@ const UserManagement = () => {
   // Custom cell renderer for user-specific fields
   const renderCustomCell = (item, column, value, fieldKey) => {
     if (column === t('name')) {
-      const profileImageUrl = item.profile_picture 
-        ? `${assetUrl}/${item.profile_picture}` 
+      const profileImageUrl = item.profile_picture
+        ? `${assetUrl}/${item.profile_picture}`
         : null;
 
       return (
@@ -130,7 +130,7 @@ const UserManagement = () => {
                 }}
               />
             ) : null}
-            <div 
+            <div
               className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center"
               style={{ display: profileImageUrl ? 'none' : 'flex' }}
             >
