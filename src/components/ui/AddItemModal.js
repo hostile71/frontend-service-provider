@@ -4,9 +4,10 @@ import { useLocalization } from '../../contexts/LocalizationContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateService, useUpdateService } from '../../hooks/useServices';
+import { useServices, useCreateService, useUpdateService } from '../../hooks/useServices';
 import { useSubcategories, useCreateSubcategory, useUpdateSubcategory } from '../../hooks/useSubcategories';
 import { useCategories, useCreateCategory, useUpdateCategory } from '../../hooks/useCategories';
+import { useCreateBooking, useUpdateBooking } from '../../hooks/useBookings';
 import { useUsers } from '../../hooks/useUsers';
 import { useUser } from '../../contexts/UserContext';
 import { buildAssetUrl } from '../../utils/helpers';
@@ -24,15 +25,32 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
   const updateCategory = useUpdateCategory();
   const createSubcategory = useCreateSubcategory();
   const updateSubcategory = useUpdateSubcategory();
+  const createBooking = useCreateBooking();
+  const updateBooking = useUpdateBooking();
 
   const { data: categoriesData } = useCategories({ per_page: 100 });
   const { data: subcategoriesData } = useSubcategories({ per_page: 100 });
+  const { data: servicesData } = useServices({ per_page: 100 });
   const { data: providersData } = useUsers({ type: 'provider', per_page: 100 });
 
   // Normalize providers list from potential response shapes
   const providersList = (providersData && (
     providersData.data?.data || providersData.data || providersData.users || providersData
   )) || [];
+
+  // Normalize services list from potential response shapes
+  const servicesList = Array.isArray(servicesData)
+    ? servicesData
+    : (servicesData?.data?.data || servicesData?.data || servicesData?.services || []);
+
+  // Debug: Log services data
+  useEffect(() => {
+    if (servicesData) {
+      console.log('Services Data:', servicesData);
+      console.log('Services List:', servicesList);
+      console.log('Services List Length:', servicesList.length);
+    }
+  }, [servicesData]);
 
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -58,16 +76,25 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
         category_id: editItem.category_id || editItem.sub_category?.category_id || editItem.sub_category?.category?.id || editItem.category?.id || '',
         // subcategory id
         subcategory_id: editItem.sub_category_id || editItem.sub_category?.id || '',
+        // service_id for bookings (may come as service_id or service object)
+        service_id: editItem.service_id || editItem.service?.id || '',
         // banner image path or file
         banner_image: editItem.banner_image || editItem.image || editItem.banner || null,
         // images may come as array of paths/objects
         images: Array.isArray(editItem.images) ? editItem.images : (editItem.images ? [editItem.images] : []),
       };
 
+      // Convert booking_date from ISO format to YYYY-MM-DD for date input
+      if (normalized.booking_date) {
+        const dateStr = normalized.booking_date.split('T')[0]; // Extract YYYY-MM-DD from ISO string
+        normalized.booking_date = dateStr;
+      }
+
       // Convert numeric ids to strings for select value matching
       if (normalized.provider_id !== undefined && normalized.provider_id !== null) normalized.provider_id = String(normalized.provider_id);
       if (normalized.category_id !== undefined && normalized.category_id !== null) normalized.category_id = String(normalized.category_id);
       if (normalized.subcategory_id !== undefined && normalized.subcategory_id !== null) normalized.subcategory_id = String(normalized.subcategory_id);
+      if (normalized.service_id !== undefined && normalized.service_id !== null) normalized.service_id = String(normalized.service_id);
 
       setFormData(normalized);
       // record original existing image IDs (if any) to compute removals on update
@@ -631,6 +658,47 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
             const successMsg = result?.message || t('createSuccess') || 'Subcategory created successfully!';
             toast.success(successMsg);
             queryClient.invalidateQueries({ queryKey: ['subcategories'] });
+          }
+        } else if (type === 'booking') {
+          // Booking: all fields are text/numbers - use JSON
+          if (isEditMode && editItem) {
+            // Update flow
+            const bookingData = {
+              service_id: formData.service_id,
+              mobile_no: formData.mobile_no,
+              booking_date: formData.booking_date,
+              schedule_time: formData.schedule_time,
+              price: formData.price,
+              discount_amount: formData.discount_amount || 0,
+              net_amount: formData.net_amount,
+              status: formData.status,
+              notes: formData.notes || '',
+            };
+
+            const result = await updateBooking.mutateAsync({ id: editItem.id, ...bookingData });
+            const successMsg = result?.message || t('updateSuccess') || 'Booking updated successfully!';
+            toast.success(successMsg);
+            queryClient.invalidateQueries({ queryKey: ['bookings'] });
+          } else {
+            // Create flow
+            const bookingData = {
+              service_id: formData.service_id,
+              mobile_no: formData.mobile_no,
+              booking_date: formData.booking_date,
+              schedule_time: formData.schedule_time,
+              price: formData.price,
+              discount_amount: formData.discount_amount || 0,
+              net_amount: formData.net_amount,
+              status: formData.status || 'pending',
+              notes: formData.notes || '',
+              created_by: 1, // TODO: Get from auth context
+              updated_by: 1, // TODO: Get from auth context
+            };
+
+            const result = await createBooking.mutateAsync(bookingData);
+            const successMsg = result?.message || t('createSuccess') || 'Booking created successfully!';
+            toast.success(successMsg);
+            queryClient.invalidateQueries({ queryKey: ['bookings'] });
           }
         }
 
@@ -1315,6 +1383,130 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <p className="text-xs text-gray-500 mt-1">
                     Select a color for this subcategory
                   </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'booking':
+        return (
+          <div className="space-y-6">
+            {/* Booking Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <CalendarDays className="w-5 h-5 mr-2" />
+                Booking Details
+              </h4>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Service <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.service_id ? 'border-red-500' : 'border-gray-300'}`}
+                      value={formData.service_id || ''}
+                      onChange={(e) => handleInputChange('service_id', e.target.value)}
+                      required
+                    >
+                      <option value="">Select service</option>
+                      {servicesList.length > 0 ? (
+                        servicesList.map((service) => (
+                          <option key={service.id} value={service.id}>
+                            {service.title || service.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled>Loading services...</option>
+                      )}
+                    </select>
+                    {errors.service_id && (
+                      <p className="text-red-500 text-sm mt-1">{errors.service_id}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mobile Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.mobile_no ? 'border-red-500' : 'border-gray-300'}`}
+                      placeholder="01712345678"
+                      value={formData.mobile_no || ''}
+                      onChange={(e) => handleInputChange('mobile_no', e.target.value)}
+                      required
+                    />
+                    {errors.mobile_no && (
+                      <p className="text-red-500 text-sm mt-1">{errors.mobile_no}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Booking Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.booking_date ? 'border-red-500' : 'border-gray-300'}`}
+                      value={formData.booking_date || ''}
+                      onChange={(e) => handleInputChange('booking_date', e.target.value)}
+                      required
+                    />
+                    {errors.booking_date && (
+                      <p className="text-red-500 text-sm mt-1">{errors.booking_date}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Schedule Time <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.schedule_time ? 'border-red-500' : 'border-gray-300'}`}
+                      placeholder="10-11 PM"
+                      value={formData.schedule_time || ''}
+                      onChange={(e) => handleInputChange('schedule_time', e.target.value)}
+                      required
+                    />
+                    {errors.schedule_time && (
+                      <p className="text-red-500 text-sm mt-1">{errors.schedule_time}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.status ? 'border-red-500' : 'border-gray-300'}`}
+                    value={formData.status || 'pending'}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    required
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  {errors.status && (
+                    <p className="text-red-500 text-sm mt-1">{errors.status}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows="3"
+                    placeholder="Regular cleaning requested"
+                    value={formData.notes || ''}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                  ></textarea>
                 </div>
               </div>
             </div>

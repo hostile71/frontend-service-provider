@@ -13,13 +13,14 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
   const { t, currentLanguage, isRTL } = useLocalization();
   const { assetUrl } = useUser();
 
-  // If modal is not open, don't render
-  if (!isOpen) return null;
-
   // Fetch fresh details when an id is available for services/categories/subcategories
+  // Hooks must be called unconditionally
   const serviceQuery = useService(type === 'service' ? item?.id : undefined);
   const categoryQuery = useCategory(type === 'category' ? item?.id : undefined);
   const subcategoryQuery = useSubcategory(type === 'subcategory' ? item?.id : undefined);
+
+  // If modal is not open, don't render (but hooks are already called above)
+  if (!isOpen) return null;
 
   const fetchedItem = (type === 'service' && serviceQuery?.data?.data)
     || (type === 'category' && categoryQuery?.data?.data)
@@ -357,125 +358,131 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
     </div>
   );
 
-  const renderBookingDetails = () => (
-    <div className="space-y-6">
-      {/* Booking Information */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-semibold text-gray-900 mb-3">Booking Information</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-gray-500">{t('customer')}</label>
-            <p className="text-gray-900 font-medium">{fetchedItem.customer || '-'}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">Service</label>
-            <p className="text-gray-900">{fetchedItem.service || '-'}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">{t('provider')}</label>
-            <p className="text-gray-900">{fetchedItem.provider || '-'}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">{t('status')}</label>
-            <div className="mt-1">
-              <StatusBadge status={fetchedItem.status} />
-            </div>
-          </div>
-        </div>
-      </div>
+  const renderBookingDetails = () => {
+    const customer = fetchedItem.customer || fetchedItem.user;
+    const customerName = typeof customer === 'object' && customer !== null
+      ? `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || customer.name || customer.email
+      : customer;
 
-      {/* Schedule & Location */}
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-          <Calendar className="w-5 h-5 mr-2" />
-          Schedule & Location
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-gray-500">Date</label>
-            <p className="text-gray-900">{fetchedItem.date || '-'}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">Time</label>
-            <p className="text-gray-900">{fetchedItem.time || '-'}</p>
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-gray-500 flex items-center">
-              <MapPin className="w-4 h-4 mr-1" />
-              Location
-            </label>
-            <p className="text-gray-900">{fetchedItem.location || '-'}</p>
-          </div>
-        </div>
-      </div>
+    const service = fetchedItem.service;
+    const serviceName = typeof service === 'object' && service !== null
+      ? service.title || service.name
+      : service;
 
-      {/* Payment Information */}
-      <div className="bg-green-50 p-4 rounded-lg">
-        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-          <DollarSign className="w-5 h-5 mr-2" />
-          Payment Information
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-gray-500">Amount</label>
-            <p className="text-gray-900 font-semibold text-lg">{fetchedItem.amount} OMR</p>
-          </div>
-          {fetchedItem.duration && (
+    const provider = fetchedItem.provider;
+    const providerName = typeof provider === 'object' && provider !== null
+      ? `${provider.first_name || ''} ${provider.last_name || ''}`.trim() || provider.name || provider.email
+      : provider;
+
+    return (
+      <div className="space-y-6">
+        {/* Booking Information */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="font-semibold text-gray-900 mb-3">Booking Information</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Duration</label>
-              <p className="text-gray-900">{fetchedItem.duration}</p>
+              <label className="text-sm font-medium text-gray-500">{t('customer')}</label>
+              <p className="text-gray-900 font-medium">{customerName || '-'}</p>
             </div>
-          )}
+            <div>
+              <label className="text-sm font-medium text-gray-500">Service</label>
+              <p className="text-gray-900">{serviceName || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">{t('provider')}</label>
+              <p className="text-gray-900">{providerName || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">{t('status')}</label>
+              <div className="mt-1">
+                <StatusBadge status={fetchedItem.status} />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Rating & Review */}
-      {(fetchedItem.rating || fetchedItem.review) && (
-        <div className="bg-yellow-50 p-4 rounded-lg">
+        {/* Schedule & Location */}
+        <div className="bg-blue-50 p-4 rounded-lg">
           <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-            <Star className="w-5 h-5 mr-2" />
-            Customer Feedback
+            <Calendar className="w-5 h-5 mr-2" />
+            Schedule Details
           </h4>
-          {fetchedItem.rating && (
-            <div className="flex items-center space-x-4 mb-3">
-              <RatingStars rating={fetchedItem.rating} />
-              <span className="text-lg font-semibold">{fetchedItem.rating}/5</span>
-            </div>
-          )}
-          {fetchedItem.review && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Review</label>
-              <p className="text-gray-900 mt-1 p-3 bg-white rounded border">{fetchedItem.review}</p>
+              <label className="text-sm font-medium text-gray-500">Booking Date</label>
+              <p className="text-gray-900">
+                {fetchedItem.booking_date || fetchedItem.date ? (() => {
+                  const dateStr = fetchedItem.booking_date || fetchedItem.date;
+                  const date = new Date(dateStr);
+                  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                })() : '-'}
+              </p>
             </div>
-          )}
+            <div>
+              <label className="text-sm font-medium text-gray-500">Schedule Time</label>
+              <p className="text-gray-900">{fetchedItem.schedule_time || fetchedItem.time || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Mobile Number</label>
+              <p className="text-gray-900">{fetchedItem.mobile_no || fetchedItem.phone || '-'}</p>
+            </div>
+            {fetchedItem.notes && (
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-gray-500">Notes</label>
+                <p className="text-gray-900">{fetchedItem.notes}</p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Additional Information */}
-      {(fetchedItem.description || fetchedItem.notes || fetchedItem.requestDate) && (
-        <div className="space-y-4">
-          {fetchedItem.description && (
+        {/* Payment Information */}
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+            <DollarSign className="w-5 h-5 mr-2" />
+            Payment Information
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Description</label>
-              <p className="text-gray-900 mt-1 p-3 bg-gray-50 rounded-lg">{fetchedItem.description}</p>
+              <label className="text-sm font-medium text-gray-500">Price</label>
+              <p className="text-gray-900 font-semibold">${fetchedItem.price || '0.00'}</p>
             </div>
-          )}
-          {fetchedItem.notes && (
+            {fetchedItem.discount_amount > 0 && (
+              <div>
+                <label className="text-sm font-medium text-gray-500">Discount</label>
+                <p className="text-gray-900 font-semibold text-orange-600">-${fetchedItem.discount_amount}</p>
+              </div>
+            )}
             <div>
-              <label className="text-sm font-medium text-gray-500">Notes</label>
-              <p className="text-gray-900 mt-1 p-3 bg-gray-50 rounded-lg">{fetchedItem.notes}</p>
+              <label className="text-sm font-medium text-gray-500">Net Amount</label>
+              <p className="text-gray-900 font-semibold text-lg text-green-600">${fetchedItem.net_amount || fetchedItem.amount || '0.00'}</p>
             </div>
-          )}
-          {fetchedItem.requestDate && (
-            <div>
-              <label className="text-sm font-medium text-gray-500">Request Date</label>
-              <p className="text-gray-900">{fetchedItem.requestDate}</p>
-            </div>
-          )}
+          </div>
         </div>
-      )}
-    </div>
-  );
+
+        {/* Rating & Review */}
+        {(fetchedItem.rating || fetchedItem.review) && (
+          <div className="bg-yellow-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+              <Star className="w-5 h-5 mr-2" />
+              Customer Feedback
+            </h4>
+            {fetchedItem.rating && (
+              <div className="flex items-center space-x-4 mb-3">
+                <RatingStars rating={fetchedItem.rating} />
+                <span className="text-lg font-semibold">{fetchedItem.rating}/5</span>
+              </div>
+            )}
+            {fetchedItem.review && (
+              <div>
+                <label className="text-sm font-medium text-gray-500">Review</label>
+                <p className="text-gray-900 mt-1 p-3 bg-white rounded border">{fetchedItem.review}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderPaymentDetails = () => (
     <div className="space-y-6">
