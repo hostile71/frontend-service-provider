@@ -13,7 +13,7 @@ const reportService = {
      * @returns {Promise} - API response with dashboard stats
      */
     getDashboard: async (period = 'last_7_days') => {
-        const response = await apiClient.get('/api/reports/dashboard', { params: { period } });
+        const response = await apiClient.get('/api/dashboard', { params: { period } });
         return response.data;
     },
 

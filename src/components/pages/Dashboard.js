@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  Calendar, 
-  Users, 
-  DollarSign, 
-  Grid3X3, 
-  UserCheck, 
-  CheckCircle, 
-  Star, 
+import {
+  Calendar,
+  Users,
+  DollarSign,
+  Grid3X3,
+  UserCheck,
+  CheckCircle,
+  Star,
   MapPin,
   TrendingUp,
   Activity,
@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useStats } from '../../hooks/useStats';
-import { mockBookings, mockServices } from '../../data/mockData';
+import { useDashboardStats, useTopServices } from '../../hooks/useReports';
+import { useBookings, useBookingStatistics } from '../../hooks/useBookings';
 import StatCard from '../ui/StatCard';
 import StatusBadge from '../ui/StatusBadge';
 import RatingStars from '../ui/RatingStars';
@@ -27,18 +27,50 @@ import RatingStars from '../ui/RatingStars';
 const Dashboard = () => {
   const { t, currentLanguage, isRTL } = useLocalization();
   const { themeConfig } = useTheme();
-  const stats = useStats();
 
-  // Calculate growth percentages and trends
+  // Fetch dashboard data from APIs
+  const { data: dashboardData, isLoading: loadingDashboard } = useDashboardStats('today');
+  const { data: recentBookingsData, isLoading: loadingBookings } = useBookings({ per_page: 5, sort: 'created_at', order: 'desc' });
+  const { data: topServicesData, isLoading: loadingServices } = useTopServices('last_30_days', 5);
+  const { data: bookingStatsData, isLoading: loadingStats } = useBookingStatistics();
+
+  // Extract data from API responses
+  const stats = dashboardData?.data || {};
+  const recentBookings = recentBookingsData?.data?.data || [];
+  const topServicesResponse = topServicesData?.data || {};
+  const topServices = topServicesResponse.top_services || [];
+  const bookingStats = bookingStatsData?.data || {};
+
+  // Debug: Log the stats to verify API data
+  console.log('📊 Dashboard Stats:', stats);
+  console.log('📊 Total Bookings:', stats.total_bookings);
+  console.log('📊 Active Users:', stats.active_users);
+  console.log('📊 Total Revenue:', stats.total_revenue);
+
+  // Calculate growth percentages and trends from API data
   const growthData = {
-    bookingsGrowth: 12.5,
-    usersGrowth: 8.3,
-    revenueGrowth: 15.2,
-    servicesGrowth: 5.1,
-    providersGrowth: 7.8,
-    completionRate: 94.2,
-    avgResponseTime: '12 min'
+    bookingsGrowth: stats.bookings_growth || 0,
+    usersGrowth: stats.users_growth || 0,
+    revenueGrowth: stats.revenue_growth || 0,
+    servicesGrowth: stats.services_growth || 0,
+    providersGrowth: stats.providers_growth || 0,
+    completionRate: stats.completion_rate || 0,
+    avgResponseTime: stats.avg_response_time || '0 min'
   };
+
+  // Show loading state
+  if (loadingDashboard) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gray-200 animate-pulse rounded-xl h-32"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-gray-200 animate-pulse rounded-lg h-32"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -58,7 +90,7 @@ const Dashboard = () => {
               <Eye className="w-4 h-4 inline mr-2" />
               {t('viewReports')}
             </button>
-                        <button className="bg-white text-theme-primary hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <button className="bg-white text-theme-primary hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <ArrowUpRight className="w-4 h-4 inline mr-2" />
               {t('quickActions')}
             </button>
@@ -68,81 +100,81 @@ const Dashboard = () => {
 
       {/* Key Performance Indicators */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title={t('totalBookings')} 
-          value={stats.totalBookings} 
-          change={growthData.bookingsGrowth} 
-          icon={Calendar} 
+        <StatCard
+          title={t('totalBookings')}
+          value={stats.total_bookings || 0}
+          change={growthData.bookingsGrowth}
+          icon={Calendar}
           color="blue"
           trend="up"
-          subtitle={`${stats.pendingBookings} pending`}
+          subtitle={`${stats.pending_bookings || 0} pending`}
         />
-        <StatCard 
-          title={t('activeUsers')} 
-          value={stats.totalUsers} 
-          change={growthData.usersGrowth} 
-          icon={Users} 
+        <StatCard
+          title={t('activeUsers')}
+          value={stats.active_users || 0}
+          change={growthData.usersGrowth}
+          icon={Users}
           color="green"
           trend="up"
-          subtitle={`${stats.totalCustomers} customers`}
+          subtitle={`${stats.total_customers || 0} customers`}
         />
-        <StatCard 
-          title={t('monthlyRevenue')} 
-          value={`${stats.monthlyRevenue}`} 
-          change={growthData.revenueGrowth} 
-          icon={DollarSign} 
+        <StatCard
+          title={t('monthlyRevenue')}
+          value={`${stats.total_revenue || 0}`}
+          change={growthData.revenueGrowth}
+          icon={DollarSign}
           color="purple"
           trend="up"
           subtitle="OMR this month"
           prefix="OMR"
         />
-        <StatCard 
-          title={t('activeServices')} 
-          value={stats.activeServices} 
-          change={growthData.servicesGrowth} 
-          icon={Grid3X3} 
+        <StatCard
+          title={t('activeServices')}
+          value={stats.active_services || 0}
+          change={growthData.servicesGrowth}
+          icon={Grid3X3}
           color="yellow"
           trend="up"
-          subtitle={`${stats.totalServices} total services`}
+          subtitle={`${stats.total_services || 0} total services`}
         />
       </div>
 
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title={t('serviceProviders')} 
-          value={stats.totalProviders} 
+        <StatCard
+          title={t('serviceProviders')}
+          value={stats.total_providers || 0}
           change={growthData.providersGrowth}
-          icon={UserCheck} 
+          icon={UserCheck}
           color="indigo"
           trend="up"
           subtitle="Active providers"
         />
-        <StatCard 
-          title={t('completedBookings')} 
-          value={stats.completedBookings} 
+        <StatCard
+          title={t('completedBookings')}
+          value={stats.completed_bookings || 0}
           change={growthData.completionRate}
-          icon={CheckCircle} 
+          icon={CheckCircle}
           color="green"
           trend="up"
-          subtitle="Success rate 94.2%"
+          subtitle={`Success rate ${growthData.completionRate}%`}
         />
-        <StatCard 
-          title={t('averageRating')} 
-          value={stats.averageRating.toFixed(1)} 
-          change={2.3}
-          icon={Star} 
+        <StatCard
+          title={t('averageRating')}
+          value={(stats.average_rating || 0).toFixed(1)}
+          change={stats.rating_growth || 0}
+          icon={Star}
           color="yellow"
           trend="up"
           subtitle="Customer satisfaction"
         />
-        <StatCard 
-          title="Response Time" 
+        <StatCard
+          title="Response Time"
           value={growthData.avgResponseTime}
-          change={-15.2}
-          icon={Clock} 
+          change={stats.response_time_change || 0}
+          icon={Clock}
           color="orange"
-          trend="down"
+          trend={stats.response_time_change < 0 ? "down" : "up"}
           subtitle="Avg response time"
         />
       </div>
@@ -158,19 +190,19 @@ const Dashboard = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-theme-text-secondary">New Bookings</span>
-              <span className="font-semibold text-theme-primary">+8</span>
+              <span className="font-semibold text-theme-primary">+{bookingStats.total_bookings || 0}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-theme-text-secondary">Completed Services</span>
-              <span className="font-semibold text-green-600">+12</span>
+              <span className="font-semibold text-green-600">+{stats.completed_bookings || 0}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-theme-text-secondary">New Providers</span>
-              <span className="font-semibold text-purple-600">+3</span>
+              <span className="text-sm text-theme-text-secondary">Confirmed Bookings</span>
+              <span className="font-semibold text-purple-600">+{bookingStats.confirmed_bookings || 0}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-theme-text-secondary">Customer Reviews</span>
-              <span className="font-semibold text-yellow-600">+15</span>
+              <span className="text-sm text-theme-text-secondary">Pending Bookings</span>
+              <span className="font-semibold text-yellow-600">+{bookingStats.pending_bookings || 0}</span>
             </div>
           </div>
         </div>
@@ -183,16 +215,16 @@ const Dashboard = () => {
           </div>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-theme-text-secondary">Conversion Rate</span>
-              <span className="font-semibold text-green-600">12.8%</span>
+              <span className="text-sm text-theme-text-secondary">Average Rating</span>
+              <span className="font-semibold text-green-600">{stats.average_rating || 0}/5</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-theme-text-secondary">Avg. Booking Value</span>
-              <span className="font-semibold text-theme-primary">42 OMR</span>
+              <span className="text-sm text-theme-text-secondary">Total Revenue</span>
+              <span className="font-semibold text-theme-primary">{stats.total_revenue || 0} OMR</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-theme-text-secondary">Customer Retention</span>
-              <span className="font-semibold text-purple-600">87.5%</span>
+              <span className="text-sm text-theme-text-secondary">Active Users</span>
+              <span className="font-semibold text-purple-600">{stats.active_users || 0}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-theme-text-secondary">Platform Uptime</span>
@@ -208,14 +240,18 @@ const Dashboard = () => {
             <AlertCircle className="w-5 h-5 text-theme-text-secondary" />
           </div>
           <div className="space-y-3">
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800 font-medium">3 pending reviews</p>
-              <p className="text-xs text-yellow-600">Requires admin attention</p>
-            </div>
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800 font-medium">New provider applications</p>
-              <p className="text-xs text-blue-600">5 pending approvals</p>
-            </div>
+            {stats.pending_reviews > 0 && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800 font-medium">{stats.pending_reviews} pending reviews</p>
+                <p className="text-xs text-yellow-600">Requires admin attention</p>
+              </div>
+            )}
+            {stats.pending_providers > 0 && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800 font-medium">New provider applications</p>
+                <p className="text-xs text-blue-600">{stats.pending_providers} pending approvals</p>
+              </div>
+            )}
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-sm text-green-800 font-medium">System update completed</p>
               <p className="text-xs text-green-600">All services running normally</p>
@@ -227,39 +263,53 @@ const Dashboard = () => {
         {/* Recent Bookings */}
         <div className="bg-theme-card p-4 md:p-6 rounded-lg shadow-sm border-theme-border border">
           <h3 className="text-lg font-semibold mb-4 text-theme-text">{t('recentBookings')}</h3>
-          <div className="space-y-4">
-            {mockBookings.slice(0, 5).map(booking => (
-              <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-theme-border last:border-b-0 space-y-2 sm:space-y-0">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                    <p className="font-medium text-sm truncate text-theme-text">{booking.service}</p>
-                    <StatusBadge status={booking.status} />
+          {loadingBookings ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-gray-200 animate-pulse h-20 rounded"></div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentBookings.length > 0 ? recentBookings.map(booking => (
+                <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-theme-border last:border-b-0 space-y-2 sm:space-y-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                      <p className="font-medium text-sm truncate text-theme-text">{booking.service?.title || 'N/A'}</p>
+                      <StatusBadge status={booking.status} />
+                    </div>
+                    <p className="text-xs text-theme-text-secondary mt-1 truncate">
+                      {booking.customer?.name || 'N/A'} • {booking.booking_date || 'N/A'} at {booking.schedule_time || 'N/A'}
+                    </p>
+                    <div className="flex items-center mt-1 text-xs text-theme-text-secondary">
+                      <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{booking.address || 'N/A'}</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-theme-text-secondary mt-1 truncate">
-                    {booking.customer} • {booking.date} at {booking.time}
-                  </p>
-                  <div className="flex items-center mt-1 text-xs text-theme-text-secondary">
-                    <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">{booking.location}</span>
+                  <div className="text-right flex-shrink-0 ml-4">
+                    <p className="font-semibold text-sm text-theme-text">{booking.net_amount || booking.price || 0} OMR</p>
+                    {booking.rating?.rating && <RatingStars rating={booking.rating.rating} />}
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0 ml-4">
-                  <p className="font-semibold text-sm text-theme-text">{booking.amount} OMR</p>
-                  {booking.rating && <RatingStars rating={booking.rating} />}
-                </div>
-              </div>
-            ))}
-          </div>
+              )) : (
+                <p className="text-center text-theme-text-secondary py-4">No recent bookings</p>
+              )}
+            </div>
+          )}
         </div>
-        
+
         {/* Top Services */}
         <div className="bg-theme-card p-4 md:p-6 rounded-lg shadow-sm border-theme-border border">
           <h3 className="text-lg font-semibold mb-4 text-theme-text">{t('topServices')}</h3>
-          <div className="space-y-4">
-            {mockServices
-              .sort((a, b) => b.bookings - a.bookings)
-              .slice(0, 5)
-              .map(service => (
+          {loadingServices ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-gray-200 animate-pulse h-16 rounded"></div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {topServices.length > 0 ? topServices.map(service => (
                 <div key={service.id} className="flex items-center justify-between py-2">
                   <div className="flex items-center min-w-0 flex-1">
                     <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mr-3">
@@ -267,23 +317,26 @@ const Dashboard = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm truncate text-theme-text">
-                        {currentLanguage === 'ar' && service.nameAr ? service.nameAr : service.name}
+                        {service.title || service.name}
                       </p>
                       <div className="flex items-center mt-1 flex-wrap">
-                        <RatingStars rating={service.rating} />
+                        <RatingStars rating={service.avg_rating || service.rating || 0} />
                         <span className="text-xs text-theme-text-secondary ml-2">
-                          {service.bookings} {t('bookings')}
+                          {service.total_bookings || service.bookings || 0} {t('bookings')}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-semibold text-sm text-theme-text">{service.price} OMR</p>
-                    <StatusBadge status={service.status} />
+                    <p className="font-semibold text-sm text-theme-text">{service.price || 0} OMR</p>
+                    <StatusBadge status={service.status || 'active'} />
                   </div>
                 </div>
-              ))}
-          </div>
+              )) : (
+                <p className="text-center text-theme-text-secondary py-4">No services available</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
