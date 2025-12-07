@@ -92,6 +92,68 @@ const reportService = {
         });
         return response.data;
     },
+
+    /**
+     * Get user analytics
+     * @param {number} userId - User ID
+     * @param {string} period - Period filter or custom date range
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @returns {Promise} - API response with user analytics
+     */
+    getUserAnalytics: async (userId, period = null, startDate = null, endDate = null) => {
+        const params = { user_id: userId };
+        if (period) params.period = period;
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+        const response = await apiClient.get('/api/reports/user-analytics', { params });
+        return response.data;
+    },
+
+    /**
+     * Get provider analytics
+     * @param {number} providerId - Provider ID
+     * @param {string} period - Period filter or custom date range
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @returns {Promise} - API response with provider analytics
+     */
+    getProviderAnalytics: async (providerId, period = null, startDate = null, endDate = null) => {
+        const params = { provider_id: providerId };
+        if (period) params.period = period;
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+        const response = await apiClient.get('/api/reports/provider-analytics', { params });
+        return response.data;
+    },
+
+    /**
+     * Get service analytics
+     * @param {number} serviceId - Service ID
+     * @param {string} period - Period filter or custom date range
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @returns {Promise} - API response with service analytics
+     */
+    getServiceAnalytics: async (serviceId, period = null, startDate = null, endDate = null) => {
+        const params = { service_id: serviceId };
+        if (period) params.period = period;
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+        const response = await apiClient.get('/api/reports/service-analytics', { params });
+        return response.data;
+    },
+
+    /**
+     * Get revenue report with advanced filtering
+     * @param {Object} filters - Filter options
+     * @returns {Promise} - API response with revenue report
+     */
+    getRevenueReport: async (filters = {}) => {
+        const response = await apiClient.get('/api/reports/revenue', { params: filters });
+        return response.data;
+    },
 };
 
 export default reportService;
+

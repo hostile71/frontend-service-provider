@@ -9,6 +9,10 @@ export const reportKeys = {
     topServices: (period, limit) => [...reportKeys.all, 'top-services', period, limit],
     customerEngagement: (period) => [...reportKeys.all, 'customer-engagement', period],
     providerPerformance: (period) => [...reportKeys.all, 'provider-performance', period],
+    userAnalytics: (userId, period, startDate, endDate) => [...reportKeys.all, 'user-analytics', userId, period, startDate, endDate],
+    providerAnalytics: (providerId, period, startDate, endDate) => [...reportKeys.all, 'provider-analytics', providerId, period, startDate, endDate],
+    serviceAnalytics: (serviceId, period, startDate, endDate) => [...reportKeys.all, 'service-analytics', serviceId, period, startDate, endDate],
+    revenue: (filters) => [...reportKeys.all, 'revenue', filters],
 };
 
 export const useDashboardStats = (period = 'last_7_days') => {
@@ -55,6 +59,41 @@ export const useProviderPerformance = (period = 'last_30_days') => {
     return useQuery({
         queryKey: reportKeys.providerPerformance(period),
         queryFn: () => reportService.getProviderPerformance(period),
+        staleTime: 5 * 60 * 1000,
+    });
+};
+
+export const useUserAnalytics = (userId, period = null, startDate = null, endDate = null) => {
+    return useQuery({
+        queryKey: reportKeys.userAnalytics(userId, period, startDate, endDate),
+        queryFn: () => reportService.getUserAnalytics(userId, period, startDate, endDate),
+        enabled: !!userId,
+        staleTime: 5 * 60 * 1000,
+    });
+};
+
+export const useProviderAnalytics = (providerId, period = null, startDate = null, endDate = null) => {
+    return useQuery({
+        queryKey: reportKeys.providerAnalytics(providerId, period, startDate, endDate),
+        queryFn: () => reportService.getProviderAnalytics(providerId, period, startDate, endDate),
+        enabled: !!providerId,
+        staleTime: 5 * 60 * 1000,
+    });
+};
+
+export const useServiceAnalytics = (serviceId, period = null, startDate = null, endDate = null) => {
+    return useQuery({
+        queryKey: reportKeys.serviceAnalytics(serviceId, period, startDate, endDate),
+        queryFn: () => reportService.getServiceAnalytics(serviceId, period, startDate, endDate),
+        enabled: !!serviceId,
+        staleTime: 5 * 60 * 1000,
+    });
+};
+
+export const useRevenueReport = (filters = {}) => {
+    return useQuery({
+        queryKey: reportKeys.revenue(filters),
+        queryFn: () => reportService.getRevenueReport(filters),
         staleTime: 5 * 60 * 1000,
     });
 };
