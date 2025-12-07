@@ -41,6 +41,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
   const { assetUrl } = useUser();
   const [bannerPreview, setBannerPreview] = useState(null);
   const [imagesPreview, setImagesPreview] = useState([]);
+  const [iconPreview, setIconPreview] = useState(null);
   const initialImageIdsRef = useRef([]);
 
   const isEditMode = editItem !== null;
@@ -166,12 +167,55 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
     };
   }, [formData?.images, assetUrl]);
 
+  // Generate preview when icon changes (for category/subcategory)
+  useEffect(() => {
+    let currentUrl = null;
+    const setPreview = async () => {
+      if (!formData?.icon) {
+        setIconPreview(null);
+        return;
+      }
+
+      // If a File was selected
+      if (formData.icon instanceof File) {
+        currentUrl = URL.createObjectURL(formData.icon);
+        setIconPreview(currentUrl);
+        return;
+      }
+
+      // If it's an existing path/string, build asset URL
+      if (typeof formData.icon === 'string') {
+        setIconPreview(buildAssetUrl(assetUrl, formData.icon));
+        return;
+      }
+
+      setIconPreview(null);
+    };
+
+    setPreview();
+
+    return () => {
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+    };
+  }, [formData?.icon, assetUrl]);
+
   // Handle form input changes
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // Don't set undefined or empty values for file fields
+    if (value === undefined || value === null) {
+      // Remove the field from formData if it exists
+      setFormData(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+
     // Clear error for this field when user changes it
     if (errors[field]) {
       setErrors(prev => {
@@ -418,25 +462,174 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
             queryClient.invalidateQueries({ queryKey: ['services'] });
           }
         } else if (type === 'category') {
-          const payload = (formData.icon instanceof File) ? buildFormData(formData) : formData;
+          // Category: icon is file, color is text - use FormData
+          const iconIsFile = formData.icon instanceof File;
+
+          console.log('🔍 Category formData before submit:', formData);
+          console.log('🔍 Icon value:', formData.icon, 'Type:', typeof formData.icon, 'Is File:', iconIsFile);
+
+          // For create mode, icon is required
+          if (!isEditMode && !iconIsFile) {
+            toast.error('Please select an icon image');
+            return;
+          }
+
+          const needFormData = iconIsFile;
+
           if (isEditMode && editItem?.id) {
-            await updateCategory.mutateAsync({ id: editItem.id, data: payload });
-            toast.success(t('updateSuccess') || 'Updated');
+            // Update flow
+            if (needFormData) {
+              const fd = new FormData();
+
+              // Build FormData matching service structure
+              Object.keys(formData).forEach((k) => {
+                const v = formData[k];
+                if (v === undefined || v === null) return;
+
+                // Handle File objects (icon)
+                if (v instanceof File) {
+                  fd.append(k, v);
+                }
+                // Skip arrays, objects (including empty objects), append only scalars
+                else if (!Array.isArray(v) && typeof v !== 'object') {
+                  fd.append(k, String(v));
+                }
+                // If it's an object but not a File, skip it (this handles empty objects {})
+              });
+
+              console.log('📦 Category Update FormData:');
+              for (const pair of fd.entries()) {
+                console.log('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+              }
+
+              const result = await updateCategory.mutateAsync({ id: editItem.id, data: fd });
+              const successMsg = result?.message || t('updateSuccess') || 'Category updated successfully!';
+              toast.success(successMsg);
+            } else {
+              // No file, send JSON
+              const categoryData = { name: formData.name, color: formData.color };
+              const result = await updateCategory.mutateAsync({ id: editItem.id, data: categoryData });
+              const successMsg = result?.message || t('updateSuccess') || 'Category updated successfully!';
+              toast.success(successMsg);
+            }
             queryClient.invalidateQueries({ queryKey: ['categories'] });
           } else {
-            await createCategory.mutateAsync(payload);
-            toast.success(t('createSuccess') || 'Created');
+            //Create flow
+            const fd = new FormData();
+
+            // Build FormData matching service structure
+            Object.keys(formData).forEach((k) => {
+              const v = formData[k];
+              console.log(`  Processing field "${k}":`, v, typeof v, v instanceof File);
+
+              if (v === undefined || v === null) return;
+
+              // Handle File objects (icon)
+              if (v instanceof File) {
+                console.log(`    ✅ Appending File: ${k}`);
+                fd.append(k, v);
+              }
+              // Skip arrays, objects (including empty objects), append only scalars
+              else if (!Array.isArray(v) && typeof v !== 'object') {
+                console.log(`    ✅ Appending scalar: ${k} = ${v}`);
+                fd.append(k, String(v));
+              } else {
+                console.log(`    ⏭️ Skipping ${k} (is array or object)`);
+              }
+              // If it's an object but not a File, skip it (this handles empty objects {})
+            });
+
+            console.log('📦 Category Create FormData:');
+            for (const pair of fd.entries()) {
+              console.log('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+            }
+
+            const result = await createCategory.mutateAsync(fd);
+            const successMsg = result?.message || t('createSuccess') || 'Category created successfully!';
+            toast.success(successMsg);
             queryClient.invalidateQueries({ queryKey: ['categories'] });
           }
         } else if (type === 'subcategory') {
-          const payload = formData; // no files expected by default
+          // Subcategory: icon is file, color is text - use FormData
+          const iconIsFile = formData.icon instanceof File;
+
+          // For create mode, icon is required
+          if (!isEditMode && !iconIsFile) {
+            toast.error('Please select an icon image');
+            return;
+          }
+
+          const needFormData = iconIsFile;
+
           if (isEditMode && editItem?.id) {
-            await updateSubcategory.mutateAsync({ id: editItem.id, data: payload });
-            toast.success(t('updateSuccess') || 'Updated');
+            // Update flow
+            if (needFormData) {
+              const fd = new FormData();
+
+              // Build FormData matching service structure
+              Object.keys(formData).forEach((k) => {
+                const v = formData[k];
+                if (v === undefined || v === null) return;
+
+                // Handle File objects (icon)
+                if (v instanceof File) {
+                  fd.append(k, v);
+                }
+                // Skip arrays, objects (including empty objects), append only scalars
+                else if (!Array.isArray(v) && typeof v !== 'object') {
+                  fd.append(k, String(v));
+                }
+                // If it's an object but not a File, skip it (this handles empty objects {})
+              });
+
+              console.log('📦 Subcategory Update FormData:');
+              for (const pair of fd.entries()) {
+                console.log('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+              }
+
+              const result = await updateSubcategory.mutateAsync({ id: editItem.id, data: fd });
+              const successMsg = result?.message || t('updateSuccess') || 'Subcategory updated successfully!';
+              toast.success(successMsg);
+            } else {
+              // No file, send JSON
+              const subcategoryData = {
+                name: formData.name,
+                category_id: formData.category_id,
+                color: formData.color
+              };
+              const result = await updateSubcategory.mutateAsync({ id: editItem.id, data: subcategoryData });
+              const successMsg = result?.message || t('updateSuccess') || 'Subcategory updated successfully!';
+              toast.success(successMsg);
+            }
             queryClient.invalidateQueries({ queryKey: ['subcategories'] });
           } else {
-            await createSubcategory.mutateAsync(payload);
-            toast.success(t('createSuccess') || 'Created');
+            // Create flow
+            const fd = new FormData();
+
+            // Build FormData matching service structure
+            Object.keys(formData).forEach((k) => {
+              const v = formData[k];
+              if (v === undefined || v === null) return;
+
+              // Handle File objects (icon)
+              if (v instanceof File) {
+                fd.append(k, v);
+              }
+              // Skip arrays, objects (including empty objects), append only scalars
+              else if (!Array.isArray(v) && typeof v !== 'object') {
+                fd.append(k, String(v));
+              }
+              // If it's an object but not a File, skip it (this handles empty objects {})
+            });
+
+            console.log('📦 Subcategory Create FormData:');
+            for (const pair of fd.entries()) {
+              console.log('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+            }
+
+            const result = await createSubcategory.mutateAsync(fd);
+            const successMsg = result?.message || t('createSuccess') || 'Subcategory created successfully!';
+            toast.success(successMsg);
             queryClient.invalidateQueries({ queryKey: ['subcategories'] });
           }
         }
@@ -958,40 +1151,19 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('name')} (English) <span className="text-red-500">*</span>
+                    {t('name')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter category name in English"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="Enter category name"
                     value={formData.name || ''}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     required
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('name')} (Arabic) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    dir="rtl"
-                    placeholder="أدخل اسم الفئة بالعربية"
-                    value={formData.nameAr || ''}
-                    onChange={(e) => handleInputChange('nameAr', e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('description')}</label>
-                  <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows="3"
-                    placeholder="Describe this category and what services it includes"
-                    value={formData.categoryDescription || ''}
-                    onChange={(e) => handleInputChange('categoryDescription', e.target.value)}
-                  ></textarea>
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1000,19 +1172,50 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
             <div className="bg-green-50 p-4 rounded-lg">
               <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                 <Image className="w-5 h-5 mr-2" />
-                Category Icon
+                Category Icon & Color
               </h4>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Icon Image</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleInputChange('icon', e.target.files[0])}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Recommended: Square image, minimum 64x64px, PNG or SVG format
-                </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Icon Image <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleInputChange('icon', e.target.files[0])}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.icon ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload icon image: Square, minimum 64x64px, PNG or SVG format
+                  </p>
+                  {errors.icon && (
+                    <p className="text-red-500 text-sm mt-1">{errors.icon}</p>
+                  )}
+                  {(iconPreview || (isEditMode && editItem?.icon)) && (
+                    <div className="mt-3">
+                      <img
+                        src={iconPreview || `${assetUrl}/${editItem?.icon}`}
+                        alt="Icon preview"
+                        className="w-16 h-16 object-cover rounded border border-gray-300"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Color <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.color || '#3B82F6'}
+                    onChange={(e) => handleInputChange('color', e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select a color for this category
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1029,13 +1232,12 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('name')} (English) <span className="text-red-500">*</span>
+                    {t('name')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    placeholder="Enter subcategory name in English"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="Enter subcategory name"
                     value={formData.name || ''}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     required
@@ -1046,29 +1248,10 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('name')} (Arabic) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.name_ar ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    dir="rtl"
-                    placeholder="أدخل اسم الفئة الفرعية بالعربية"
-                    value={formData.name_ar || ''}
-                    onChange={(e) => handleInputChange('name_ar', e.target.value)}
-                    required
-                  />
-                  {errors.name_ar && (
-                    <p className="text-red-500 text-sm mt-1">{errors.name_ar}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Parent {t('category')} <span className="text-red-500">*</span>
                   </label>
                   <select
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.category_id ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.category_id ? 'border-red-500' : 'border-gray-300'}`}
                     value={formData.category_id || ''}
                     onChange={(e) => handleInputChange('category_id', e.target.value)}
                     required
@@ -1082,20 +1265,6 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <p className="text-red-500 text-sm mt-1">{errors.category_id}</p>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('description')}</label>
-                  <textarea
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    rows="3"
-                    placeholder="Describe this subcategory"
-                    value={formData.description || ''}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                  ></textarea>
-                  {errors.description && (
-                    <p className="text-red-500 text-sm mt-1">{errors.description}</p>
-                  )}
-                </div>
               </div>
             </div>
 
@@ -1103,19 +1272,50 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
             <div className="bg-green-50 p-4 rounded-lg">
               <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                 <Image className="w-5 h-5 mr-2" />
-                Subcategory Icon
+                Subcategory Icon & Color
               </h4>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Icon Image</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleInputChange('icon', e.target.files[0])}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Recommended: Square image, minimum 64x64px, PNG or SVG format
-                </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Icon Image <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleInputChange('icon', e.target.files[0])}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.icon ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload icon image: Square, minimum 64x64px, PNG or SVG format
+                  </p>
+                  {errors.icon && (
+                    <p className="text-red-500 text-sm mt-1">{errors.icon}</p>
+                  )}
+                  {(iconPreview || (isEditMode && editItem?.icon)) && (
+                    <div className="mt-3">
+                      <img
+                        src={iconPreview || `${assetUrl}/${editItem?.icon}`}
+                        alt="Icon preview"
+                        className="w-16 h-16 object-cover rounded border border-gray-300"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Color <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.color || '#3B82F6'}
+                    onChange={(e) => handleInputChange('color', e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select a color for this subcategory
+                  </p>
+                </div>
               </div>
             </div>
           </div>

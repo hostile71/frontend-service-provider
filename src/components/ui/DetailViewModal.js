@@ -229,8 +229,8 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
             <label className="text-sm font-medium text-gray-500">Verified</label>
             <div className="mt-1">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${fetchedItem.is_verified === 1 || fetchedItem.is_verified === true || fetchedItem.is_verified === 'true'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-800'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-800'
                 }`}>
                 {fetchedItem.is_verified === 1 || fetchedItem.is_verified === true || fetchedItem.is_verified === 'true' ? (
                   <>
@@ -571,8 +571,8 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
             <label className="text-sm font-medium text-gray-500">Priority</label>
             <p className="text-gray-900">
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${fetchedItem.priority === 'High' ? 'bg-red-100 text-red-800' :
-                  fetchedItem.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
+                fetchedItem.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
                 }`}>
                 {fetchedItem.priority}
               </span>
@@ -791,7 +791,7 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
         <div className="bg-green-50 p-4 rounded-lg">
           <h4 className="font-semibold text-gray-900 mb-3">Category Icon</h4>
           <div className="flex items-center">
-            <img src={fetchedItem.icon} alt="Category Icon" className="w-16 h-16 object-cover rounded border" />
+            <img src={`${assetUrl}/${fetchedItem.icon}`} alt="Category Icon" className="w-16 h-16 object-cover rounded border" />
           </div>
         </div>
       )}
@@ -840,7 +840,7 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
         <div className="bg-green-50 p-4 rounded-lg">
           <h4 className="font-semibold text-gray-900 mb-3">Subcategory Icon</h4>
           <div className="flex items-center">
-            <img src={fetchedItem.icon} alt="Subcategory Icon" className="w-16 h-16 object-cover rounded border" />
+            <img src={`${assetUrl}/${fetchedItem.icon}`} alt="Subcategory Icon" className="w-16 h-16 object-cover rounded border" />
           </div>
         </div>
       )}

@@ -23,10 +23,15 @@ apiClient.interceptors.request.use(
   (config) => {
     // Get token from localStorage
     const token = localStorage.getItem('authToken');
-    
+
     // If token exists, add to Authorization header
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // If data is FormData, remove Content-Type header to let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
     }
 
     // Log request in development
@@ -35,6 +40,7 @@ apiClient.interceptors.request.use(
         method: config.method?.toUpperCase(),
         url: config.url,
         data: config.data,
+        isFormData: config.data instanceof FormData,
       });
     }
 
@@ -92,10 +98,10 @@ apiClient.interceptors.response.use(
           localStorage.removeItem('authToken');
           localStorage.removeItem('userEmail');
           localStorage.removeItem('2faVerified');
-          
+
           // Only redirect if not already on login/2fa page
-          if (!window.location.pathname.includes('/login') && 
-              !window.location.pathname.includes('/verify-2fa')) {
+          if (!window.location.pathname.includes('/login') &&
+            !window.location.pathname.includes('/verify-2fa')) {
             window.location.href = '/login';
           }
           break;
