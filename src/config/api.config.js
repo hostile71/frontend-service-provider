@@ -5,7 +5,8 @@
  */
 
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost/backend-service-provider',
+  // BASE_URL: 'http://localhost/backend-service-provider',
+  BASE_URL: 'https://backend.servi-online.com',
   TIMEOUT: 30000, // 30 seconds
   HEADERS: {
     'Content-Type': 'application/json',

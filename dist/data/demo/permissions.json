@@ -1,0 +1,392 @@
+[
+  {
+    "group": "Dashboard",
+    "groupKey": "dashboard",
+    "description": "Dashboard access and overview permissions",
+    "permissions": [
+      {
+        "label": "View Dashboard",
+        "key": "dashboard.view",
+        "description": "Access to main dashboard overview"
+      },
+      {
+        "label": "View Analytics",
+        "key": "dashboard.analytics",
+        "description": "Access to dashboard analytics and KPIs"
+      }
+    ]
+  },
+  {
+    "group": "User Management",
+    "groupKey": "users",
+    "description": "Customer and user management permissions",
+    "permissions": [
+      {
+        "label": "View All Users",
+        "key": "users.view",
+        "description": "View customer and user lists"
+      },
+      {
+        "label": "Create Users",
+        "key": "users.create",
+        "description": "Add new customers and users"
+      },
+      {
+        "label": "Edit Users",
+        "key": "users.edit",
+        "description": "Modify user profiles and information"
+      },
+      {
+        "label": "Delete Users",
+        "key": "users.delete",
+        "description": "Remove users from the system"
+      },
+      {
+        "label": "View User Analytics",
+        "key": "users.analytics",
+        "description": "Access user behavior and analytics data"
+      }
+    ]
+  },
+  {
+    "group": "Service Provider Management",
+    "groupKey": "providers",
+    "description": "Service provider management and approval permissions",
+    "permissions": [
+      {
+        "label": "View Service Providers",
+        "key": "providers.view",
+        "description": "View service provider listings"
+      },
+      {
+        "label": "Create Service Providers",
+        "key": "providers.create",
+        "description": "Add new service providers"
+      },
+      {
+        "label": "Edit Service Providers",
+        "key": "providers.edit",
+        "description": "Modify provider profiles and information"
+      },
+      {
+        "label": "Approve/Suspend Providers",
+        "key": "providers.status",
+        "description": "Change provider status and approval"
+      },
+      {
+        "label": "Delete Service Providers",
+        "key": "providers.delete",
+        "description": "Remove providers from the system"
+      },
+      {
+        "label": "View Provider Documents",
+        "key": "providers.documents",
+        "description": "Access provider verification documents"
+      }
+    ]
+  },
+  {
+    "group": "Service Management",
+    "groupKey": "services",
+    "description": "Service and category management permissions",
+    "permissions": [
+      {
+        "label": "View Services",
+        "key": "services.view",
+        "description": "View service listings"
+      },
+      {
+        "label": "Create Services",
+        "key": "services.create",
+        "description": "Add new services"
+      },
+      {
+        "label": "Edit Services",
+        "key": "services.edit",
+        "description": "Modify service details and pricing"
+      },
+      {
+        "label": "Delete Services",
+        "key": "services.delete",
+        "description": "Remove services from the system"
+      },
+      {
+        "label": "View Categories",
+        "key": "categories.view",
+        "description": "View service categories"
+      },
+      {
+        "label": "Create Categories",
+        "key": "categories.create",
+        "description": "Add new service categories"
+      },
+      {
+        "label": "Edit Categories",
+        "key": "categories.edit",
+        "description": "Modify category information"
+      },
+      {
+        "label": "Delete Categories",
+        "key": "categories.delete",
+        "description": "Remove categories from the system"
+      },
+      {
+        "label": "Manage Service Requests",
+        "key": "services.requests",
+        "description": "Handle custom service requests"
+      }
+    ]
+  },
+  {
+    "group": "Booking Management",
+    "groupKey": "bookings",
+    "description": "Booking and appointment management permissions",
+    "permissions": [
+      {
+        "label": "View All Bookings",
+        "key": "bookings.view",
+        "description": "Access all booking records"
+      },
+      {
+        "label": "Create Bookings",
+        "key": "bookings.create",
+        "description": "Create new bookings"
+      },
+      {
+        "label": "Edit Bookings",
+        "key": "bookings.edit",
+        "description": "Modify booking details"
+      },
+      {
+        "label": "Cancel Bookings",
+        "key": "bookings.cancel",
+        "description": "Cancel existing bookings"
+      },
+      {
+        "label": "Approve Bookings",
+        "key": "bookings.approve",
+        "description": "Approve pending bookings"
+      },
+      {
+        "label": "View Pending Bookings",
+        "key": "bookings.pending",
+        "description": "Access pending booking queue"
+      },
+      {
+        "label": "View Completed Bookings",
+        "key": "bookings.completed",
+        "description": "Access completed booking history"
+      }
+    ]
+  },
+  {
+    "group": "Financial Management",
+    "groupKey": "financial",
+    "description": "Payment, invoice, and commission management permissions",
+    "permissions": [
+      {
+        "label": "View Payments",
+        "key": "payments.view",
+        "description": "Access payment records and transactions"
+      },
+      {
+        "label": "Process Payments",
+        "key": "payments.process",
+        "description": "Process and manage payments"
+      },
+      {
+        "label": "View Invoices",
+        "key": "invoices.view",
+        "description": "Access invoice records"
+      },
+      {
+        "label": "Create Invoices",
+        "key": "invoices.create",
+        "description": "Generate new invoices"
+      },
+      {
+        "label": "Edit Invoices",
+        "key": "invoices.edit",
+        "description": "Modify invoice details"
+      },
+      {
+        "label": "Delete Invoices",
+        "key": "invoices.delete",
+        "description": "Remove invoices from the system"
+      },
+      {
+        "label": "View Commissions",
+        "key": "commissions.view",
+        "description": "Access commission records"
+      },
+      {
+        "label": "Manage Commissions",
+        "key": "commissions.manage",
+        "description": "Configure commission rates and payouts"
+      }
+    ]
+  },
+  {
+    "group": "Reports & Analytics",
+    "groupKey": "reports",
+    "description": "Reporting and analytics permissions",
+    "permissions": [
+      {
+        "label": "View All Reports",
+        "key": "reports.view",
+        "description": "Access all system reports"
+      },
+      {
+        "label": "Generate Reports",
+        "key": "reports.generate",
+        "description": "Create custom reports"
+      },
+      {
+        "label": "Export Reports",
+        "key": "reports.export",
+        "description": "Export reports to various formats"
+      },
+      {
+        "label": "View Revenue Reports",
+        "key": "reports.revenue",
+        "description": "Access financial and revenue reports"
+      },
+      {
+        "label": "View Service Analytics",
+        "key": "reports.services",
+        "description": "Access service performance analytics"
+      },
+      {
+        "label": "View User Analytics",
+        "key": "reports.users",
+        "description": "Access user behavior and analytics"
+      }
+    ]
+  },
+  {
+    "group": "Content Management",
+    "groupKey": "content",
+    "description": "Content, banner, and notification management permissions",
+    "permissions": [
+      {
+        "label": "View Content",
+        "key": "content.view",
+        "description": "Access content management area"
+      },
+      {
+        "label": "Create Pages",
+        "key": "content.pages.create",
+        "description": "Create new content pages"
+      },
+      {
+        "label": "Edit Pages",
+        "key": "content.pages.edit",
+        "description": "Modify existing content pages"
+      },
+      {
+        "label": "Delete Pages",
+        "key": "content.pages.delete",
+        "description": "Remove content pages"
+      },
+      {
+        "label": "View Banners",
+        "key": "banners.view",
+        "description": "View banner listings"
+      },
+      {
+        "label": "Manage Banners",
+        "key": "banners.manage",
+        "description": "Create, edit, and delete promotional banners"
+      },
+      {
+        "label": "View Notifications",
+        "key": "notifications.view",
+        "description": "View system notifications"
+      },
+      {
+        "label": "Send Notifications",
+        "key": "notifications.send",
+        "description": "Send notifications to users and providers"
+      },
+      {
+        "label": "Manage Notifications",
+        "key": "notifications.manage",
+        "description": "Create, edit, and delete notifications"
+      }
+    ]
+  },
+  {
+    "group": "System Settings",
+    "groupKey": "settings",
+    "description": "System configuration and settings permissions",
+    "permissions": [
+      {
+        "label": "View Settings",
+        "key": "settings.view",
+        "description": "Access system settings area"
+      },
+      {
+        "label": "Edit General Settings",
+        "key": "settings.general.edit",
+        "description": "Modify general system settings"
+      },
+      {
+        "label": "Manage Localization",
+        "key": "settings.localization.manage",
+        "description": "Manage language settings and translations"
+      },
+      {
+        "label": "Manage Security Settings",
+        "key": "settings.security.manage",
+        "description": "Configure security and access controls"
+      },
+      {
+        "label": "View System Logs",
+        "key": "settings.logs.view",
+        "description": "Access system activity logs"
+      },
+      {
+        "label": "Backup & Restore",
+        "key": "settings.backup",
+        "description": "Perform system backup and restore operations"
+      }
+    ]
+  },
+  {
+    "group": "Admin Management",
+    "groupKey": "admin",
+    "description": "Admin user and role management permissions",
+    "permissions": [
+      {
+        "label": "View Admin Users",
+        "key": "admin.users.view",
+        "description": "View admin user listings"
+      },
+      {
+        "label": "Create Admin Users",
+        "key": "admin.users.create",
+        "description": "Add new admin users"
+      },
+      {
+        "label": "Edit Admin Users",
+        "key": "admin.users.edit",
+        "description": "Modify admin user accounts"
+      },
+      {
+        "label": "Delete Admin Users",
+        "key": "admin.users.delete",
+        "description": "Remove admin users from the system"
+      },
+      {
+        "label": "Manage Roles",
+        "key": "admin.roles.manage",
+        "description": "Create and manage user roles"
+      },
+      {
+        "label": "Assign Permissions",
+        "key": "admin.permissions.assign",
+        "description": "Assign permissions to users and roles"
+      }
+    ]
+  }
+]
