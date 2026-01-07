@@ -1,9 +1,9 @@
+/* Import theme styles */
+@import './styles/themes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import theme styles */
-@import './styles/themes.css';
 
 * {
   margin: 0;
@@ -164,6 +164,22 @@ body {
 /* Animation for smooth transitions */
 .transition-all {
   transition: all 0.2s ease-in-out;
+}
+
+/* Toast animation */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
 }
 
 /* Focus styles */

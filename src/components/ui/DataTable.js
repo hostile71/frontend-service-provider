@@ -6,18 +6,18 @@ import { filterData, getFieldValue } from '../../utils/helpers';
 import StatusBadge from '../ui/StatusBadge';
 import RatingStars from '../ui/RatingStars';
 
-const DataTable = ({ 
-  data, 
-  columns, 
-  title, 
-  onAdd, 
+const DataTable = ({
+  data,
+  columns,
+  title,
+  onAdd,
   searchFields = ['name', 'email', 'title'],
   renderCustomCell,
   itemType = 'item' // New prop to specify the type of items in the table
 }) => {
   const { t, currentLanguage, isRTL } = useLocalization();
   const { activeTab, searchTerms, setSearchTerms, openDetailView, setModalType, setShowModal, setEditItem } = useAppContext();
-  
+
   const handleViewClick = (item) => {
     // Determine the type based on activeTab or itemType prop
     let type = itemType;
@@ -45,7 +45,7 @@ const DataTable = ({
         type = 'generic';
       }
     }
-        console.log(activeTab, type);
+    console.log(activeTab, type);
 
     openDetailView(item, type);
   };
@@ -90,37 +90,37 @@ const DataTable = ({
   // Pagination state
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage, setItemsPerPage] = React.useState(10);
-  
+
   // Calculate pagination
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedData = filteredData.slice(startIndex, endIndex);
-  
+
   // Reset to first page when search term changes
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
-  
+
   // Generate page numbers for pagination display
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
     const halfVisible = Math.floor(maxVisiblePages / 2);
-    
+
     let startPage = Math.max(1, currentPage - halfVisible);
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
+
     // Adjust start page if we're near the end
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
-    
+
     return pages;
   };
 
@@ -146,23 +146,23 @@ const DataTable = ({
     if (fieldKey.includes('status') || column === t('status')) {
       return <StatusBadge status={value} />;
     }
-    
+
     if (fieldKey.includes('price') || fieldKey.includes('amount') || column === t('price') || column === 'Amount' || column === 'Revenue' || column === 'Commissions' || column === 'Total' || column === 'Commission') {
       return value !== null && value !== undefined ? <span className="font-medium">{value} OMR</span> : '-';
     }
-    
+
     if (fieldKey.includes('rating') || column === t('rating')) {
       return value && <RatingStars rating={value} />;
     }
-    
+
     if (column === 'Growth' || column === 'Success Rate' || column === 'Rate' || column === 'Change') {
       return value !== null && value !== undefined ? <span className="text-sm">{value}%</span> : '-';
     }
-    
+
     if (column === 'Orders' || column === 'Requests' || column === 'Completed' || column === 'Recipients' || column === 'Value') {
       return value !== null && value !== undefined ? <span className="text-sm font-medium">{value.toLocaleString()}</span> : '-';
     }
-    
+
     if (column === t('name') || column === t('serviceName')) {
       return (
         <span className="text-sm text-gray-900">
@@ -170,7 +170,7 @@ const DataTable = ({
         </span>
       );
     }
-    
+
     return <span className="text-sm text-gray-900">{value !== null && value !== undefined ? value : '-'}</span>;
   };
 
@@ -187,7 +187,7 @@ const DataTable = ({
                 type="text"
                 placeholder={`${t('search')}...`}
                 value={searchTerm}
-                onChange={(e) => setSearchTerms({...searchTerms, [activeTab]: e.target.value})}
+                onChange={(e) => setSearchTerms({ ...searchTerms, [activeTab]: e.target.value })}
                 className={`w-full sm:w-48 py-2 border border-gray-300 rounded-lg form-input-theme ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
               />
             </div>
@@ -196,7 +196,7 @@ const DataTable = ({
               {t('filter')}
             </button>
             {onAdd && (
-              <button 
+              <button
                 onClick={onAdd}
                 className="flex items-center justify-center px-4 py-2 btn-theme-primary rounded-lg whitespace-nowrap"
               >
@@ -207,9 +207,9 @@ const DataTable = ({
           </div>
         </div>
       </div>
-      
+
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto thin-scrollbar">
         <table className={`w-full ${isRTL ? 'table-rtl' : ''}`}>
           <thead className="bg-gray-50">
             <tr>
@@ -229,7 +229,7 @@ const DataTable = ({
                 {columns.map((column, cellIndex) => {
                   const value = getFieldValue(item, column, t);
                   const fieldKey = column.toLowerCase().replace(/\s+/g, '');
-                  
+
                   return (
                     <td key={cellIndex} className={`px-4 md:px-6 py-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                       {renderCellContent(item, column, value, fieldKey)}
@@ -238,14 +238,14 @@ const DataTable = ({
                 })}
                 <td className={`px-4 md:px-6 py-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <div className={`flex items-center space-x-1 md:space-x-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
-                    <button 
+                    <button
                       onClick={() => handleViewClick(item)}
                       className="p-1.5 md:p-2 text-gray-400 hover:text-blue-600 rounded transition-colors"
                       title={t('view')}
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleEditClick(item)}
                       className="p-1.5 md:p-2 text-gray-400 hover:text-green-600 rounded transition-colors"
                       title={t('edit')}
@@ -271,7 +271,7 @@ const DataTable = ({
           </tbody>
         </table>
       </div>
-      
+
       {/* Modern Pagination */}
       {totalItems > 0 && (
         <div className="px-4 py-4 border-t border-gray-200 bg-white">
@@ -284,20 +284,20 @@ const DataTable = ({
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">Show:</span>
                 <select
-                  value={itemsPerPage}
-                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  value={String(itemsPerPage)}
+                  onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value, 10))}
                   className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
                 </select>
                 <span className="text-sm text-gray-700">per page</span>
               </div>
             </div>
-            
+
             {/* Pagination controls */}
             {totalPages > 1 && (
               <div className="flex items-center space-x-1">
@@ -310,7 +310,7 @@ const DataTable = ({
                 >
                   <ChevronsLeft className="w-4 h-4" />
                 </button>
-                
+
                 {/* Previous page */}
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
@@ -320,24 +320,23 @@ const DataTable = ({
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                
+
                 {/* Page numbers */}
                 <div className="flex items-center space-x-1">
                   {getPageNumbers().map((pageNum) => (
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-                        currentPage === pageNum
+                      className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${currentPage === pageNum
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-700 hover:bg-gray-100'
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
                   ))}
                 </div>
-                
+
                 {/* Next page */}
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
@@ -347,7 +346,7 @@ const DataTable = ({
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
-                
+
                 {/* Last page */}
                 <button
                   onClick={() => handlePageChange(totalPages)}

@@ -1,43 +1,717 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Briefcase, Package, Globe, Image, Bell, CreditCard, FileText, BarChart3, CalendarDays, MapPin } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useAppContext } from '../../contexts/AppContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useServices, useCreateService, useUpdateService } from '../../hooks/useServices';
+import { useSubcategories, useCreateSubcategory, useUpdateSubcategory } from '../../hooks/useSubcategories';
+import { useCategories, useCreateCategory, useUpdateCategory } from '../../hooks/useCategories';
+import { useCreateBooking, useUpdateBooking } from '../../hooks/useBookings';
+import { useUsers } from '../../hooks/useUsers';
+import { useUser } from '../../contexts/UserContext';
+import { buildAssetUrl } from '../../utils/helpers';
 
 const AddItemModal = ({ isOpen, onClose, type }) => {
   const { t, isRTL } = useLocalization();
   const { editItem, setEditItem } = useAppContext();
   const [formData, setFormData] = useState({});
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const createService = useCreateService();
+  const updateService = useUpdateService();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const createSubcategory = useCreateSubcategory();
+  const updateSubcategory = useUpdateSubcategory();
+  const createBooking = useCreateBooking();
+  const updateBooking = useUpdateBooking();
+
+  const { data: categoriesData } = useCategories({ per_page: 100 });
+  const { data: subcategoriesData } = useSubcategories({ per_page: 100 });
+  const { data: servicesData } = useServices({ per_page: 100 });
+  const { data: providersData } = useUsers({ type: 'provider', per_page: 100 });
+
+  // Normalize providers list from potential response shapes
+  const providersList = (providersData && (
+    providersData.data?.data || providersData.data || providersData.users || providersData
+  )) || [];
+
+  // Normalize services list from potential response shapes
+  const servicesList = Array.isArray(servicesData)
+    ? servicesData
+    : (servicesData?.data?.data || servicesData?.data || servicesData?.services || []);
+
+  // Debug: Log services data
+  useEffect(() => {
+    if (servicesData) {
+      console.log('Services Data:', servicesData);
+      console.log('Services List:', servicesList);
+      console.log('Services List Length:', servicesList.length);
+    }
+  }, [servicesData]);
+
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  // Previews for banner and gallery images
+  const { assetUrl } = useUser();
+  const [bannerPreview, setBannerPreview] = useState(null);
+  const [imagesPreview, setImagesPreview] = useState([]);
+  const [iconPreview, setIconPreview] = useState(null);
+  const initialImageIdsRef = useRef([]);
 
   const isEditMode = editItem !== null;
 
   // Initialize form data when editItem changes or modal opens
   useEffect(() => {
     if (isEditMode && editItem) {
-      setFormData(editItem);
+      // Normalize editItem into expected form keys so selects auto-select correctly
+      const normalized = {
+        ...editItem,
+        // provider_id may come as provider_id or provider object
+        provider_id: editItem.provider_id || editItem.provider?.id || editItem.provider?.user_id || '',
+        // category_id may be on editItem.category_id or nested under sub_category
+        category_id: editItem.category_id || editItem.sub_category?.category_id || editItem.sub_category?.category?.id || editItem.category?.id || '',
+        // subcategory id
+        subcategory_id: editItem.sub_category_id || editItem.sub_category?.id || '',
+        // service_id for bookings (may come as service_id or service object)
+        service_id: editItem.service_id || editItem.service?.id || '',
+        // banner image path or file
+        banner_image: editItem.banner_image || editItem.image || editItem.banner || null,
+        // images may come as array of paths/objects
+        images: Array.isArray(editItem.images) ? editItem.images : (editItem.images ? [editItem.images] : []),
+      };
+
+      // Convert booking_date from ISO format to YYYY-MM-DD for date input
+      if (normalized.booking_date) {
+        const dateStr = normalized.booking_date.split('T')[0]; // Extract YYYY-MM-DD from ISO string
+        normalized.booking_date = dateStr;
+      }
+
+      // Convert numeric ids to strings for select value matching
+      if (normalized.provider_id !== undefined && normalized.provider_id !== null) normalized.provider_id = String(normalized.provider_id);
+      if (normalized.category_id !== undefined && normalized.category_id !== null) normalized.category_id = String(normalized.category_id);
+      if (normalized.subcategory_id !== undefined && normalized.subcategory_id !== null) normalized.subcategory_id = String(normalized.subcategory_id);
+      if (normalized.service_id !== undefined && normalized.service_id !== null) normalized.service_id = String(normalized.service_id);
+
+      setFormData(normalized);
+      // record original existing image IDs (if any) to compute removals on update
+      const existingIds = (Array.isArray(normalized.images) ? normalized.images : [])
+        .filter(img => img && typeof img === 'object' && (img.id || img.image_id || img.imageId))
+        .map(img => img.id || img.image_id || img.imageId)
+        .filter(Boolean);
+      initialImageIdsRef.current = existingIds;
+      // Clear errors when loading edit data
+      setErrors({});
     } else {
       setFormData({});
+      setErrors({});
     }
   }, [editItem, isEditMode, isOpen]);
 
+  // Generate previews when banner_image changes
+  useEffect(() => {
+    let currentUrl = null;
+    const setPreview = async () => {
+      if (!formData?.banner_image) {
+        setBannerPreview(null);
+        return;
+      }
+
+      // If a File was selected
+      if (formData.banner_image instanceof File) {
+        currentUrl = URL.createObjectURL(formData.banner_image);
+        setBannerPreview(currentUrl);
+        return;
+      }
+
+      // If it's an existing path/string, build asset URL
+      if (typeof formData.banner_image === 'string') {
+        setBannerPreview(buildAssetUrl(assetUrl, formData.banner_image));
+        return;
+      }
+
+      setBannerPreview(null);
+    };
+
+    setPreview();
+
+    return () => {
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+    };
+  }, [formData?.banner_image, assetUrl]);
+
+  // Generate previews when images (gallery) change
+  useEffect(() => {
+    let objectUrls = [];
+    const build = () => {
+      if (!formData?.images) {
+        setImagesPreview([]);
+        return;
+      }
+
+      // If it's an array (either File objects from input or existing paths/objects)
+      if (Array.isArray(formData.images)) {
+        // New Files selected
+        if (formData.images.length > 0 && formData.images[0] instanceof File) {
+          objectUrls = formData.images.map(f => URL.createObjectURL(f));
+          setImagesPreview(objectUrls);
+          return;
+        }
+
+        // Existing images (paths or objects)
+        const urls = formData.images.map(img => {
+          if (!img) return null;
+          if (typeof img === 'string') return buildAssetUrl(assetUrl, img);
+          // Try various property names that might contain the image path
+          if (img.url) return buildAssetUrl(assetUrl, img.url);
+          if (img.path) return buildAssetUrl(assetUrl, img.path);
+          if (img.image_path) return buildAssetUrl(assetUrl, img.image_path);
+          if (img.image) return buildAssetUrl(assetUrl, img.image);
+          return null;
+        }).filter(Boolean);
+        setImagesPreview(urls);
+        return;
+      }
+
+      // If FileList (fallback)
+      if (typeof FileList !== 'undefined' && formData.images instanceof FileList) {
+        const files = Array.from(formData.images);
+        objectUrls = files.map(f => URL.createObjectURL(f));
+        setImagesPreview(objectUrls);
+        return;
+      }
+
+      setImagesPreview([]);
+    };
+
+    build();
+
+    return () => {
+      objectUrls.forEach(u => URL.revokeObjectURL(u));
+    };
+  }, [formData?.images, assetUrl]);
+
+  // Generate preview when icon changes (for category/subcategory)
+  useEffect(() => {
+    let currentUrl = null;
+    const setPreview = async () => {
+      if (!formData?.icon) {
+        setIconPreview(null);
+        return;
+      }
+
+      // If a File was selected
+      if (formData.icon instanceof File) {
+        currentUrl = URL.createObjectURL(formData.icon);
+        setIconPreview(currentUrl);
+        return;
+      }
+
+      // If it's an existing path/string, build asset URL
+      if (typeof formData.icon === 'string') {
+        setIconPreview(buildAssetUrl(assetUrl, formData.icon));
+        return;
+      }
+
+      setIconPreview(null);
+    };
+
+    setPreview();
+
+    return () => {
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+    };
+  }, [formData?.icon, assetUrl]);
+
   // Handle form input changes
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // Don't set undefined or empty values for file fields
+    if (value === undefined || value === null) {
+      // Remove the field from formData if it exists
+      setFormData(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+
+    // Clear error for this field when user changes it
+    if (errors[field]) {
+      setErrors(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
   };
 
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Here you would typically call an API to save/update the item
-    console.log('Submitting form data:', formData);
-    console.log('Is edit mode:', isEditMode);
-    
-    // Close modal and reset
-    onClose();
-    setEditItem(null);
-    setFormData({});
+    setSubmitting(true);
+    setErrors({});
+
+    const buildFormData = (obj) => {
+      const fd = new FormData();
+      Object.keys(obj).forEach((k) => {
+        const v = obj[k];
+        if (v === undefined || v === null) return;
+        // Handle FileList (multiple files)
+        if (typeof FileList !== 'undefined' && v instanceof FileList) {
+          Array.from(v).forEach((file) => fd.append(`${k}[]`, file));
+        } else if (v instanceof File) {
+          fd.append(k, v);
+        } else if (Array.isArray(v)) {
+          // If array contains File objects, append each as file
+          if (v.length > 0 && v[0] instanceof File) {
+            v.forEach((file) => fd.append(`${k}[]`, file));
+          } else {
+            // For arrays of existing image paths or simple values, append each as repeated field
+            v.forEach((item) => {
+              if (item === undefined || item === null) return;
+              if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
+                fd.append(`${k}[]`, String(item));
+              } else if (item.path) {
+                fd.append(`${k}[]`, item.path);
+              } else if (item.url) {
+                fd.append(`${k}[]`, item.url);
+              } else {
+                // fallback to JSON string
+                fd.append(`${k}[]`, JSON.stringify(item));
+              }
+            });
+          }
+        } else {
+          fd.append(k, v);
+        }
+      });
+      return fd;
+    };
+
+    const handleError = (err) => {
+      console.error('Form submission error:', err);
+      const backend = err.errors || err.response?.data?.errors || null;
+      if (backend) {
+        const formatted = {};
+        const errorMessages = [];
+        Object.keys(backend).forEach((key) => {
+          const val = backend[key];
+          // Normalize key: if it's like 'images.0' -> 'images', 'sub_category_id' -> 'subcategory_id'
+          let normalized = key.split('.')[0];
+          // convert snake_case to camel-like with underscores removed for form fields
+          normalized = normalized.replace(/_([a-z])/g, (m, p1) => p1.toUpperCase());
+          // Lowercase first char to match our form keys
+          normalized = normalized.charAt(0).toLowerCase() + normalized.slice(1);
+          // map specific known fields
+          if (normalized === 'subCategoryId') normalized = 'subcategory_id';
+          if (normalized === 'providerId') normalized = 'provider_id';
+          if (normalized === 'bannerImage') normalized = 'banner_image';
+          if (normalized === 'images') normalized = 'images';
+
+          const errorMsg = Array.isArray(val) ? val[0] : val;
+          formatted[normalized] = errorMsg;
+          errorMessages.push(errorMsg);
+        });
+        setErrors(formatted);
+        // Show first error or general message
+        const firstError = errorMessages[0] || t('validationError') || 'Please check the form for errors';
+        toast.error(firstError);
+      } else {
+        const message = err.response?.data?.message || err.message || 'Failed to save. Please try again.';
+        toast.error(message);
+      }
+    };
+
+    (async () => {
+      try {
+        if (type === 'service') {
+          // Map frontend keys to backend expected keys
+          const mapKeysForBackend = (src) => {
+            const payloadObj = { ...src };
+            if (payloadObj.subcategory_id !== undefined) {
+              payloadObj.sub_category_id = payloadObj.subcategory_id;
+              delete payloadObj.subcategory_id;
+            }
+            // Normalize is_verified to string 'true'/'false' (matching working API)
+            if (payloadObj.is_verified !== undefined) {
+              payloadObj.is_verified = payloadObj.is_verified ? 'true' : 'false';
+            }
+            // Ensure currency has a default value if not set
+            if (!payloadObj.currency) {
+              payloadObj.currency = 'OMR';
+            }
+            return payloadObj;
+          };
+
+          const mapped = mapKeysForBackend(formData);
+
+          // DEV: log payload mapping for debugging dropdown/required issues
+          try {
+            if (process && process.env && process.env.NODE_ENV !== 'production') {
+              console.debug('Service payload mapped (before files):', mapped);
+            }
+          } catch (e) {
+            // ignore in environments without process
+          }
+
+          // Extract newly-selected image File objects (if any)
+          const newImageFiles = Array.isArray(formData.images) ? formData.images.filter(i => i instanceof File) : [];
+          const bannerIsFile = formData.banner_image instanceof File;
+
+          // When editing, compute which existing image IDs were removed by the user
+          let removeImageIds = [];
+          if (isEditMode) {
+            const remainingExistingIds = (Array.isArray(formData.images) ? formData.images : [])
+              .filter(img => img && typeof img === 'object' && (img.id || img.image_id || img.imageId))
+              .map(img => img.id || img.image_id || img.imageId)
+              .filter(Boolean);
+            removeImageIds = initialImageIdsRef.current.filter(id => !remainingExistingIds.includes(id));
+          }
+
+          // Decide whether we need multipart FormData: banner or new images or icon are files
+          const needFormData = bannerIsFile || newImageFiles.length > 0 || formData.icon instanceof File;
+
+          if (isEditMode && editItem?.id) {
+            // Update flow
+            if (needFormData) {
+              const fd = new FormData();
+
+              // Append scalar fields first (matching working API structure)
+              Object.keys(mapped).forEach((k) => {
+                const v = mapped[k];
+                if (v === undefined || v === null) return;
+                // Skip file-related fields (handled separately below)
+                if (k === 'images' || k === 'banner_image' || k === 'icon') return;
+
+                // Append scalar values directly (NOT as arrays)
+                if (!Array.isArray(v)) {
+                  fd.append(k, String(v));
+                }
+              });
+
+              // Append banner_image file ONLY if user selected a new file
+              // If not changed, don't send it (backend keeps existing)
+              if (bannerIsFile) {
+                fd.append('banner_image', formData.banner_image);
+              }
+
+              // Append new image files as images[] (multiple entries, like working API)
+              newImageFiles.forEach(file => {
+                fd.append('images[]', file);
+              });
+
+              // Append remove_image_ids[] for images user deleted
+              removeImageIds.forEach(id => {
+                fd.append('remove_image_ids[]', String(id));
+              });
+
+              // DEV: log FormData entries for debugging
+              try {
+                if (process && process.env && process.env.NODE_ENV !== 'production') {
+                  console.debug('=== Update FormData entries ===');
+                  for (const pair of fd.entries()) {
+                    console.debug('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+                  }
+                }
+              } catch (e) { }
+
+              const result = await updateService.mutateAsync({ id: editItem.id, data: fd });
+              const successMsg = result?.message || t('updateSuccess') || 'Service updated successfully!';
+              toast.success(successMsg);
+            } else {
+              // No files to upload: send JSON payload with scalars + remove_image_ids
+              const payloadObj = { ...mapped };
+              delete payloadObj.images; // images are file-managed
+              delete payloadObj.banner_image; // don't send existing path, backend keeps it
+              delete payloadObj.icon; // don't send existing icon path
+              if (removeImageIds.length > 0) payloadObj.remove_image_ids = removeImageIds;
+              const result = await updateService.mutateAsync({ id: editItem.id, data: payloadObj });
+              const successMsg = result?.message || t('updateSuccess') || 'Service updated successfully!';
+              toast.success(successMsg);
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['services'] });
+          } else {
+            // Create flow
+            if (needFormData) {
+              const fd = new FormData();
+
+              // Build FormData matching API structure
+              Object.keys(mapped).forEach((k) => {
+                const v = mapped[k];
+                if (v === undefined || v === null) return;
+
+                // Handle File objects
+                if (v instanceof File) {
+                  fd.append(k, v);
+                }
+                // Handle FileList
+                else if (typeof FileList !== 'undefined' && v instanceof FileList) {
+                  Array.from(v).forEach(file => fd.append(`${k}[]`, file));
+                }
+                // Handle array of Files (images)
+                else if (Array.isArray(v) && v.length > 0 && v[0] instanceof File) {
+                  v.forEach(file => fd.append(`${k}[]`, file));
+                }
+                // Skip non-file arrays and objects (don't send existing image paths on create)
+                else if (!Array.isArray(v) && typeof v !== 'object') {
+                  fd.append(k, String(v));
+                }
+              });
+
+              // DEV: log FormData entries
+              try {
+                if (process && process.env && process.env.NODE_ENV !== 'production') {
+                  console.debug('=== Create FormData entries ===');
+                  for (const pair of fd.entries()) {
+                    console.debug('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+                  }
+                }
+              } catch (e) { }
+
+              const result = await createService.mutateAsync(fd);
+              const successMsg = result?.message || t('createSuccess') || 'Service created successfully!';
+              toast.success(successMsg);
+            } else {
+              const result = await createService.mutateAsync(mapped);
+              const successMsg = result?.message || t('createSuccess') || 'Service created successfully!';
+              toast.success(successMsg);
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['services'] });
+          }
+        } else if (type === 'category') {
+          // Category: icon is file, color is text - use FormData
+          const iconIsFile = formData.icon instanceof File;
+
+          console.log('🔍 Category formData before submit:', formData);
+          console.log('🔍 Icon value:', formData.icon, 'Type:', typeof formData.icon, 'Is File:', iconIsFile);
+
+          // For create mode, icon is required
+          if (!isEditMode && !iconIsFile) {
+            toast.error('Please select an icon image');
+            return;
+          }
+
+          const needFormData = iconIsFile;
+
+          if (isEditMode && editItem?.id) {
+            // Update flow
+            if (needFormData) {
+              const fd = new FormData();
+
+              // Build FormData matching service structure
+              Object.keys(formData).forEach((k) => {
+                const v = formData[k];
+                if (v === undefined || v === null) return;
+
+                // Handle File objects (icon)
+                if (v instanceof File) {
+                  fd.append(k, v);
+                }
+                // Skip arrays, objects (including empty objects), append only scalars
+                else if (!Array.isArray(v) && typeof v !== 'object') {
+                  fd.append(k, String(v));
+                }
+                // If it's an object but not a File, skip it (this handles empty objects {})
+              });
+
+              console.log('📦 Category Update FormData:');
+              for (const pair of fd.entries()) {
+                console.log('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+              }
+
+              const result = await updateCategory.mutateAsync({ id: editItem.id, data: fd });
+              const successMsg = result?.message || t('updateSuccess') || 'Category updated successfully!';
+              toast.success(successMsg);
+            } else {
+              // No file, send JSON
+              const categoryData = { name: formData.name, color: formData.color };
+              const result = await updateCategory.mutateAsync({ id: editItem.id, data: categoryData });
+              const successMsg = result?.message || t('updateSuccess') || 'Category updated successfully!';
+              toast.success(successMsg);
+            }
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+          } else {
+            //Create flow
+            const fd = new FormData();
+
+            // Build FormData matching service structure
+            Object.keys(formData).forEach((k) => {
+              const v = formData[k];
+              console.log(`  Processing field "${k}":`, v, typeof v, v instanceof File);
+
+              if (v === undefined || v === null) return;
+
+              // Handle File objects (icon)
+              if (v instanceof File) {
+                console.log(`    ✅ Appending File: ${k}`);
+                fd.append(k, v);
+              }
+              // Skip arrays, objects (including empty objects), append only scalars
+              else if (!Array.isArray(v) && typeof v !== 'object') {
+                console.log(`    ✅ Appending scalar: ${k} = ${v}`);
+                fd.append(k, String(v));
+              } else {
+                console.log(`    ⏭️ Skipping ${k} (is array or object)`);
+              }
+              // If it's an object but not a File, skip it (this handles empty objects {})
+            });
+
+            console.log('📦 Category Create FormData:');
+            for (const pair of fd.entries()) {
+              console.log('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+            }
+
+            const result = await createCategory.mutateAsync(fd);
+            const successMsg = result?.message || t('createSuccess') || 'Category created successfully!';
+            toast.success(successMsg);
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+          }
+        } else if (type === 'subcategory') {
+          // Subcategory: icon is file, color is text - use FormData
+          const iconIsFile = formData.icon instanceof File;
+
+          // For create mode, icon is required
+          if (!isEditMode && !iconIsFile) {
+            toast.error('Please select an icon image');
+            return;
+          }
+
+          const needFormData = iconIsFile;
+
+          if (isEditMode && editItem?.id) {
+            // Update flow
+            if (needFormData) {
+              const fd = new FormData();
+
+              // Build FormData matching service structure
+              Object.keys(formData).forEach((k) => {
+                const v = formData[k];
+                if (v === undefined || v === null) return;
+
+                // Handle File objects (icon)
+                if (v instanceof File) {
+                  fd.append(k, v);
+                }
+                // Skip arrays, objects (including empty objects), append only scalars
+                else if (!Array.isArray(v) && typeof v !== 'object') {
+                  fd.append(k, String(v));
+                }
+                // If it's an object but not a File, skip it (this handles empty objects {})
+              });
+
+              console.log('📦 Subcategory Update FormData:');
+              for (const pair of fd.entries()) {
+                console.log('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+              }
+
+              const result = await updateSubcategory.mutateAsync({ id: editItem.id, data: fd });
+              const successMsg = result?.message || t('updateSuccess') || 'Subcategory updated successfully!';
+              toast.success(successMsg);
+            } else {
+              // No file, send JSON
+              const subcategoryData = {
+                name: formData.name,
+                category_id: formData.category_id,
+                color: formData.color
+              };
+              const result = await updateSubcategory.mutateAsync({ id: editItem.id, data: subcategoryData });
+              const successMsg = result?.message || t('updateSuccess') || 'Subcategory updated successfully!';
+              toast.success(successMsg);
+            }
+            queryClient.invalidateQueries({ queryKey: ['subcategories'] });
+          } else {
+            // Create flow
+            const fd = new FormData();
+
+            // Build FormData matching service structure
+            Object.keys(formData).forEach((k) => {
+              const v = formData[k];
+              if (v === undefined || v === null) return;
+
+              // Handle File objects (icon)
+              if (v instanceof File) {
+                fd.append(k, v);
+              }
+              // Skip arrays, objects (including empty objects), append only scalars
+              else if (!Array.isArray(v) && typeof v !== 'object') {
+                fd.append(k, String(v));
+              }
+              // If it's an object but not a File, skip it (this handles empty objects {})
+            });
+
+            console.log('📦 Subcategory Create FormData:');
+            for (const pair of fd.entries()) {
+              console.log('  ', pair[0], ':', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+            }
+
+            const result = await createSubcategory.mutateAsync(fd);
+            const successMsg = result?.message || t('createSuccess') || 'Subcategory created successfully!';
+            toast.success(successMsg);
+            queryClient.invalidateQueries({ queryKey: ['subcategories'] });
+          }
+        } else if (type === 'booking') {
+          // Booking: all fields are text/numbers - use JSON
+          if (isEditMode && editItem) {
+            // Update flow
+            const bookingData = {
+              service_id: formData.service_id,
+              mobile_no: formData.mobile_no,
+              booking_date: formData.booking_date,
+              schedule_time: formData.schedule_time,
+              price: formData.price,
+              discount_amount: formData.discount_amount || 0,
+              net_amount: formData.net_amount,
+              status: formData.status,
+              notes: formData.notes || '',
+            };
+
+            const result = await updateBooking.mutateAsync({ id: editItem.id, ...bookingData });
+            const successMsg = result?.message || t('updateSuccess') || 'Booking updated successfully!';
+            toast.success(successMsg);
+            queryClient.invalidateQueries({ queryKey: ['bookings'] });
+          } else {
+            // Create flow
+            const bookingData = {
+              service_id: formData.service_id,
+              mobile_no: formData.mobile_no,
+              booking_date: formData.booking_date,
+              schedule_time: formData.schedule_time,
+              price: formData.price,
+              discount_amount: formData.discount_amount || 0,
+              net_amount: formData.net_amount,
+              status: formData.status || 'pending',
+              notes: formData.notes || '',
+              created_by: 1, // TODO: Get from auth context
+              updated_by: 1, // TODO: Get from auth context
+            };
+
+            const result = await createBooking.mutateAsync(bookingData);
+            const successMsg = result?.message || t('createSuccess') || 'Booking created successfully!';
+            toast.success(successMsg);
+            queryClient.invalidateQueries({ queryKey: ['bookings'] });
+          }
+        }
+
+        // close modal and reset
+        onClose();
+        setEditItem(null);
+        setFormData({});
+      } catch (err) {
+        handleError(err);
+      } finally {
+        setSubmitting(false);
+      }
+    })();
   };
 
   // Handle modal close
@@ -45,6 +719,25 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
     onClose();
     setEditItem(null);
     setFormData({});
+    setErrors({});
+    setBannerPreview(null);
+    setImagesPreview([]);
+    initialImageIdsRef.current = [];
+    setSubmitting(false);
+  };
+
+  const clearBanner = () => {
+    setFormData(prev => ({ ...prev, banner_image: null }));
+    setBannerPreview(null);
+  };
+
+  const removeImageAt = (index) => {
+    setFormData(prev => {
+      const imgs = Array.isArray(prev.images) ? [...prev.images] : [];
+      if (index < 0 || index >= imgs.length) return prev;
+      imgs.splice(index, 1);
+      return { ...prev, images: imgs };
+    });
   };
 
   if (!isOpen) return null;
@@ -87,6 +780,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
       case 'provider': return `${prefix} ${t('serviceProvider')}`;
       case 'service': return `${prefix} ${t('serviceName')}`;
       case 'category': return `${prefix} ${t('category')}`;
+      case 'subcategory': return `${prefix} Subcategory`;
       case 'admin-user': return `${prefix} Admin User`;
       case 'content': return `${prefix} Content`;
       case 'translation': return `${prefix} Translation Key`;
@@ -117,28 +811,28 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 Basic Information
               </h4>
               <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('name')} <span className="text-red-500">*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      value={formData.name || ''}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      placeholder="Enter full name"
-                      required
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('name')} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name || ''}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter full name"
+                    required
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t('email')} <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={formData.email || ''}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                 </div>
@@ -146,19 +840,19 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t('phone')} <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     placeholder="+968 9XXX XXXX"
                     value={formData.phone || ''}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('address')}</label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows="2"
                     placeholder="Enter full address"
                     value={formData.address || ''}
@@ -177,9 +871,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">{t('companyName')}</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter company name"
                       value={formData.companyName || ''}
                       onChange={(e) => handleInputChange('companyName', e.target.value)}
@@ -190,8 +884,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t('specialization')} <span className="text-red-500">*</span>
                       </label>
-                      <select 
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
                         value={formData.specialization || ''}
                         onChange={(e) => handleInputChange('specialization', e.target.value)}
@@ -208,8 +902,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t('experience')} <span className="text-red-500">*</span>
                       </label>
-                      <select 
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
                         value={formData.experience || ''}
                         onChange={(e) => handleInputChange('experience', e.target.value)}
@@ -239,47 +933,167 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('serviceName')} (English) <span className="text-red-500">*</span>
+                    Service Title <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                    placeholder="Enter service name in English"
-                    value={formData.name || ''}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                  <input
+                    type="text"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.title ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    placeholder="Enter service title"
+                    value={formData.title || ''}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
                     required
                   />
+                  {errors.title && (
+                    <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('serviceName')} (Arabic) <span className="text-red-500">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                    dir="rtl" 
-                    placeholder="أدخل اسم الخدمة بالعربية"
-                    value={formData.nameAr || ''}
-                    onChange={(e) => handleInputChange('nameAr', e.target.value)}
-                    required
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('category')} <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.category_id ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      value={formData.category_id || ''}
+                      onChange={(e) => {
+                        handleInputChange('category_id', e.target.value);
+                        handleInputChange('subcategory_id', ''); // Reset subcategory when category changes
+                      }}
+                      required
+                    >
+                      <option value="">Select category</option>
+                      {categoriesData?.data?.data?.map((cat) => (
+                        <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+                      ))}
+                    </select>
+                    {errors.category_id && (
+                      <p className="text-red-500 text-sm mt-1">{errors.category_id}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subcategory <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.subcategory_id ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      value={formData.subcategory_id || ''}
+                      onChange={(e) => handleInputChange('subcategory_id', e.target.value)}
+                      disabled={!formData.category_id}
+                      required
+                    >
+                      <option value="">Select subcategory</option>
+                      {subcategoriesData?.data?.data
+                        ?.filter(sub => String(sub.category_id) === String(formData.category_id))
+                        ?.map((sub) => (
+                          <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
+                        ))}
+                    </select>
+                    {errors.subcategory_id && (
+                      <p className="text-red-500 text-sm mt-1">{errors.subcategory_id}</p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t('description')} <span className="text-red-500">*</span>
                   </label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <textarea
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     rows="3"
                     placeholder="Describe the service in detail"
                     value={formData.description || ''}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     required
                   ></textarea>
+                  {errors.description && (
+                    <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+                  )}
                 </div>
               </div>
             </div>
 
+            {/* Provider, Banner, Contact, Status */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <User className="w-5 h-5 mr-2" />
+                Provider & Media
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Provider <span className="text-red-500">*</span></label>
+                  <select
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.provider_id ? 'border-red-500' : 'border-gray-300'}`}
+                    value={formData.provider_id || ''}
+                    onChange={(e) => handleInputChange('provider_id', e.target.value)}
+                    required
+                  >
+                    <option value="">Select provider</option>
+                    {providersList?.map((p) => (
+                      <option key={p.id} value={String(p.id)}>{(p.company_name ? `${p.company_name} — ` : '') + `${p.first_name || ''} ${p.last_name || ''}` + (p.business_license ? ` (${p.business_license})` : '')}</option>
+                    ))}
+                  </select>
+                  {errors.provider_id && <p className="text-red-500 text-sm mt-1">{errors.provider_id}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Banner Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleInputChange('banner_image', e.target.files[0])}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {errors.banner_image && (
+                    <p className="text-red-500 text-sm mt-1">{errors.banner_image}</p>
+                  )}
+                  {bannerPreview && (
+                    <div className="mt-3 relative inline-block">
+                      <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                      <img src={bannerPreview} alt="Banner preview" className="w-40 h-24 object-cover rounded-md border" />
+                      <button type="button" onClick={clearBanner} className="absolute -top-2 -right-2 bg-white rounded-full p-1 border hover:bg-red-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact No.</label>
+                  <input
+                    type="text"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.contact_no ? 'border-red-500' : 'border-gray-300'}`}
+                    value={formData.contact_no || ''}
+                    onChange={(e) => handleInputChange('contact_no', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.status ? 'border-red-500' : 'border-gray-300'}`}
+                    value={formData.status || 'active'}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-3 md:space-x-0 md:flex-col">
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" checked={!!formData.is_verified} onChange={(e) => handleInputChange('is_verified', e.target.checked ? 1 : 0)} />
+                    <span className="text-sm">Verified</span>
+                  </label>
+                </div>
+              </div>
+            </div>
             {/* Pricing & Details */}
             <div className="bg-blue-50 p-4 rounded-lg">
               <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
@@ -290,51 +1104,105 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('category')} <span className="text-red-500">*</span>
+                      {t('price')} <span className="text-red-500">*</span>
                     </label>
-                    <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      required
-                      value={formData.category || ''}
-                      onChange={(e) => handleInputChange('category', e.target.value)}
-                    >
-                      <option value="">Select category</option>
-                      <option>Home Services</option>
-                      <option>Beauty & Wellness</option>
-                      <option>Automotive</option>
-                      <option>Health Care</option>
-                      <option>Education</option>
-                    </select>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.price ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        placeholder="0.00"
+                        value={formData.price || ''}
+                        onChange={(e) => handleInputChange('price', e.target.value)}
+                        required
+                      />
+
+                      <select
+                        className={`w-28 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.currency ? 'border-red-500' : 'border-gray-300'}`}
+                        value={formData.currency || 'OMR'}
+                        onChange={(e) => handleInputChange('currency', e.target.value)}
+                      >
+                        <option value="OMR">OMR</option>
+                        <option value="USD">USD</option>
+                      </select>
+                    </div>
+                    {errors.price && (
+                      <p className="text-red-500 text-sm mt-1">{errors.price}</p>
+                    )}
+                    {errors.currency && (
+                      <p className="text-red-500 text-sm mt-1">{errors.currency}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('price')} (OMR) <span className="text-red-500">*</span>
+                      {t('duration')}
                     </label>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      placeholder="0.00"
-                      value={formData.price || ''}
-                      onChange={(e) => handleInputChange('price', e.target.value)}
-                      required
+                    <input
+                      type="text"
+                      placeholder="e.g., 1-2 hours, 30 minutes"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.duration ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      value={formData.duration || ''}
+                      onChange={(e) => handleInputChange('duration', e.target.value)}
                     />
+                    {errors.duration && (
+                      <p className="text-red-500 text-sm mt-1">{errors.duration}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('duration')} <span className="text-red-500">*</span>
+                    Location
                   </label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g., 1-2 hours, 30 minutes, 1 day" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                    value={formData.duration || ''}
-                    onChange={(e) => handleInputChange('duration', e.target.value)}
-                    required
+                  <input
+                    type="text"
+                    placeholder="Service location or coverage area"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.location ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    value={formData.location || ''}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
                   />
+                  {errors.location && (
+                    <p className="text-red-500 text-sm mt-1">{errors.location}</p>
+                  )}
                 </div>
+              </div>
+            </div>
+
+            {/* Service Images */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <Image className="w-5 h-5 mr-2" />
+                Service Images
+              </h4>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Images</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleInputChange('images', Array.from(e.target.files))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Upload multiple images showcasing your service (JPG, PNG, max 5MB each)
+                </p>
+                {imagesPreview?.length > 0 && (
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                    {imagesPreview.map((src, idx) => (
+                      <div key={idx} className="relative">
+                        <img src={src} alt={`preview-${idx}`} className="w-full h-20 object-cover rounded-md border" />
+                        <button type="button" onClick={() => removeImageAt(idx)} className="absolute -top-2 -right-2 bg-white rounded-full p-1 border hover:bg-red-50">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -351,40 +1219,19 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('name')} (English) <span className="text-red-500">*</span>
+                    {t('name')} <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                    placeholder="Enter category name in English"
+                  <input
+                    type="text"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="Enter category name"
                     value={formData.name || ''}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     required
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('name')} (Arabic) <span className="text-red-500">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                    dir="rtl" 
-                    placeholder="أدخل اسم الفئة بالعربية"
-                    value={formData.nameAr || ''}
-                    onChange={(e) => handleInputChange('nameAr', e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('description')}</label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                    rows="3"
-                    placeholder="Describe this category and what services it includes"
-                    value={formData.categoryDescription || ''}
-                    onChange={(e) => handleInputChange('categoryDescription', e.target.value)}
-                  ></textarea>
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -393,18 +1240,274 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
             <div className="bg-green-50 p-4 rounded-lg">
               <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                 <Image className="w-5 h-5 mr-2" />
-                Category Icon
+                Category Icon & Color
               </h4>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Icon Image</label>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Recommended: Square image, minimum 64x64px, PNG or SVG format
-                </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Icon Image <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleInputChange('icon', e.target.files[0])}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.icon ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload icon image: Square, minimum 64x64px, PNG or SVG format
+                  </p>
+                  {errors.icon && (
+                    <p className="text-red-500 text-sm mt-1">{errors.icon}</p>
+                  )}
+                  {(iconPreview || (isEditMode && editItem?.icon)) && (
+                    <div className="mt-3">
+                      <img
+                        src={iconPreview || `${assetUrl}/${editItem?.icon}`}
+                        alt="Icon preview"
+                        className="w-16 h-16 object-cover rounded border border-gray-300"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Color <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.color || '#3B82F6'}
+                    onChange={(e) => handleInputChange('color', e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select a color for this category
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'subcategory':
+        return (
+          <div className="space-y-6">
+            {/* Subcategory Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <Package className="w-5 h-5 mr-2" />
+                Subcategory Information
+              </h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('name')} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="Enter subcategory name"
+                    value={formData.name || ''}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    required
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Parent {t('category')} <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.category_id ? 'border-red-500' : 'border-gray-300'}`}
+                    value={formData.category_id || ''}
+                    onChange={(e) => handleInputChange('category_id', e.target.value)}
+                    required
+                  >
+                    <option value="">Select parent category</option>
+                    {categoriesData?.data?.data?.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  {errors.category_id && (
+                    <p className="text-red-500 text-sm mt-1">{errors.category_id}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Subcategory Media */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <Image className="w-5 h-5 mr-2" />
+                Subcategory Icon & Color
+              </h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Icon Image <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleInputChange('icon', e.target.files[0])}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.icon ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload icon image: Square, minimum 64x64px, PNG or SVG format
+                  </p>
+                  {errors.icon && (
+                    <p className="text-red-500 text-sm mt-1">{errors.icon}</p>
+                  )}
+                  {(iconPreview || (isEditMode && editItem?.icon)) && (
+                    <div className="mt-3">
+                      <img
+                        src={iconPreview || `${assetUrl}/${editItem?.icon}`}
+                        alt="Icon preview"
+                        className="w-16 h-16 object-cover rounded border border-gray-300"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Color <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.color || '#3B82F6'}
+                    onChange={(e) => handleInputChange('color', e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select a color for this subcategory
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'booking':
+        return (
+          <div className="space-y-6">
+            {/* Booking Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <CalendarDays className="w-5 h-5 mr-2" />
+                Booking Details
+              </h4>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Service <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.service_id ? 'border-red-500' : 'border-gray-300'}`}
+                      value={formData.service_id || ''}
+                      onChange={(e) => handleInputChange('service_id', e.target.value)}
+                      required
+                    >
+                      <option value="">Select service</option>
+                      {servicesList.length > 0 ? (
+                        servicesList.map((service) => (
+                          <option key={service.id} value={service.id}>
+                            {service.title || service.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled>Loading services...</option>
+                      )}
+                    </select>
+                    {errors.service_id && (
+                      <p className="text-red-500 text-sm mt-1">{errors.service_id}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mobile Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.mobile_no ? 'border-red-500' : 'border-gray-300'}`}
+                      placeholder="01712345678"
+                      value={formData.mobile_no || ''}
+                      onChange={(e) => handleInputChange('mobile_no', e.target.value)}
+                      required
+                    />
+                    {errors.mobile_no && (
+                      <p className="text-red-500 text-sm mt-1">{errors.mobile_no}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Booking Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.booking_date ? 'border-red-500' : 'border-gray-300'}`}
+                      value={formData.booking_date || ''}
+                      onChange={(e) => handleInputChange('booking_date', e.target.value)}
+                      required
+                    />
+                    {errors.booking_date && (
+                      <p className="text-red-500 text-sm mt-1">{errors.booking_date}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Schedule Time <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.schedule_time ? 'border-red-500' : 'border-gray-300'}`}
+                      placeholder="10-11 PM"
+                      value={formData.schedule_time || ''}
+                      onChange={(e) => handleInputChange('schedule_time', e.target.value)}
+                      required
+                    />
+                    {errors.schedule_time && (
+                      <p className="text-red-500 text-sm mt-1">{errors.schedule_time}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.status ? 'border-red-500' : 'border-gray-300'}`}
+                    value={formData.status || 'pending'}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    required
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  {errors.status && (
+                    <p className="text-red-500 text-sm mt-1">{errors.status}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows="3"
+                    placeholder="Regular cleaning requested"
+                    value={formData.notes || ''}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                  ></textarea>
+                </div>
               </div>
             </div>
           </div>
@@ -423,8 +1526,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Translation Key <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="e.g., dashboard, userManagement, settings"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
                     value={formData.translationKey || ''}
@@ -435,12 +1538,12 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     Use camelCase format without spaces (e.g., userManagement)
                   </p>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Category
                   </label>
-                  <select 
+                  <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={formData.translationCategory || ''}
                     onChange={(e) => handleInputChange('translationCategory', e.target.value)}
@@ -465,8 +1568,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     English Text <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Enter the English translation"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={formData.englishText || ''}
@@ -474,13 +1577,13 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Arabic Text <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="أدخل النص العربي"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     dir="rtl"
@@ -501,9 +1604,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description
                 </label>
-                <textarea 
+                <textarea
                   placeholder="Optional: Describe when and where this translation is used"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows="3"
                 ></textarea>
               </div>
@@ -524,9 +1627,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Title <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter banner title"
                     value={formData.title || ''}
                     onChange={(e) => handleInputChange('title', e.target.value)}
@@ -538,8 +1641,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Type <span className="text-red-500">*</span>
                     </label>
-                    <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                       value={formData.type || ''}
                       onChange={(e) => handleInputChange('type', e.target.value)}
@@ -555,8 +1658,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Position <span className="text-red-500">*</span>
                     </label>
-                    <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                       value={formData.position || ''}
                       onChange={(e) => handleInputChange('position', e.target.value)}
@@ -571,8 +1674,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows="3"
                     placeholder="Enter banner description"
                     value={formData.bannerDescription || ''}
@@ -590,10 +1693,10 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Banner Image <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -602,9 +1705,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Link URL</label>
-                  <input 
-                    type="url" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <input
+                    type="url"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="https://example.com"
                     value={formData.linkUrl || ''}
                     onChange={(e) => handleInputChange('linkUrl', e.target.value)}
@@ -629,9 +1732,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Title <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter notification title"
                     value={formData.notificationTitle || ''}
                     onChange={(e) => handleInputChange('notificationTitle', e.target.value)}
@@ -675,8 +1778,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Message (English) <span className="text-red-500">*</span>
                   </label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows="3"
                     placeholder="Enter notification message in English"
                     required
@@ -686,132 +1789,12 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Message (Arabic)
                   </label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows="3"
                     placeholder="أدخل رسالة الإشعار بالعربية"
                     dir="rtl"
                   ></textarea>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'booking':
-        return (
-          <div className="space-y-8">
-            {/* Booking Information Section */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CalendarDays className="w-5 h-5 text-green-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-800">Booking Information</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Customer</label>
-                  <input
-                    type="text"
-                    name="customer"
-                    value={formData.customer || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    placeholder="Enter customer name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Service</label>
-                  <input
-                    type="text"
-                    name="service"
-                    value={formData.service || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    placeholder="Enter service name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
-                  <input
-                    type="text"
-                    name="provider"
-                    value={formData.provider || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    placeholder="Enter provider name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                  <input
-                    type="time"
-                    name="time"
-                    value={formData.time || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
-                  <input
-                    type="number"
-                    name="amount"
-                    value={formData.amount || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    placeholder="Enter amount"
-                    step="0.01"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Details Section */}
-            <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-6 rounded-lg border border-gray-200">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <MapPin className="w-5 h-5 text-gray-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-800">Additional Details</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="Enter location"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    name="status"
-                    value={formData.status || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="">Select Status</option>
-                    <option value="Scheduled">Scheduled</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
                 </div>
               </div>
             </div>
@@ -833,9 +1816,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Invoice Number <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="INV-2024-001"
                       value={formData.invoiceNumber || ''}
                       onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
@@ -846,9 +1829,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t('customer')} <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter customer name"
                       value={formData.customer || ''}
                       onChange={(e) => handleInputChange('customer', e.target.value)}
@@ -859,9 +1842,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Service</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter service name"
                       value={formData.service || ''}
                       onChange={(e) => handleInputChange('service', e.target.value)}
@@ -869,9 +1852,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">{t('provider')}</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter provider name"
                       value={formData.provider || ''}
                       onChange={(e) => handleInputChange('provider', e.target.value)}
@@ -893,11 +1876,11 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Amount <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0.00"
                       value={formData.amount || ''}
                       onChange={(e) => handleInputChange('amount', e.target.value)}
@@ -906,11 +1889,11 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Tax Amount</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0.00"
                       value={formData.taxAmount || ''}
                       onChange={(e) => handleInputChange('taxAmount', e.target.value)}
@@ -918,11 +1901,11 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Total Amount</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0.00"
                       value={formData.totalAmount || ''}
                       onChange={(e) => handleInputChange('totalAmount', e.target.value)}
@@ -932,18 +1915,18 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Issue Date</label>
-                    <input 
+                    <input
                       type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={formData.issueDate || ''}
                       onChange={(e) => handleInputChange('issueDate', e.target.value)}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
-                    <input 
+                    <input
                       type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={formData.dueDate || ''}
                       onChange={(e) => handleInputChange('dueDate', e.target.value)}
                     />
@@ -969,9 +1952,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t('provider')} <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter provider name"
                       value={formData.provider || ''}
                       onChange={(e) => handleInputChange('provider', e.target.value)}
@@ -980,9 +1963,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Service</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter service name"
                       value={formData.service || ''}
                       onChange={(e) => handleInputChange('service', e.target.value)}
@@ -994,11 +1977,11 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Order Amount <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0.00"
                       value={formData.orderAmount || ''}
                       onChange={(e) => handleInputChange('orderAmount', e.target.value)}
@@ -1007,12 +1990,12 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Commission Rate (%)</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.1"
                       min="0"
                       max="100"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="10"
                       value={formData.commissionRate || ''}
                       onChange={(e) => handleInputChange('commissionRate', e.target.value)}
@@ -1020,11 +2003,11 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Commission Amount</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0.00"
                       value={formData.commissionAmount || ''}
                       onChange={(e) => handleInputChange('commissionAmount', e.target.value)}
@@ -1051,9 +2034,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Report Name <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter report name"
                     value={formData.reportName || ''}
                     onChange={(e) => handleInputChange('reportName', e.target.value)}
@@ -1063,7 +2046,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
-                    <select 
+                    <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={formData.reportType || ''}
                       onChange={(e) => handleInputChange('reportType', e.target.value)}
@@ -1077,7 +2060,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Period</label>
-                    <select 
+                    <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={formData.period || ''}
                       onChange={(e) => handleInputChange('period', e.target.value)}
@@ -1092,8 +2075,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('description')}</label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows="3"
                     placeholder="Enter report description"
                     value={formData.reportDescription || ''}
@@ -1120,9 +2103,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t('customer')} <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter customer name"
                       value={formData.customer || ''}
                       onChange={(e) => handleInputChange('customer', e.target.value)}
@@ -1133,9 +2116,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Service <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter service name"
                       value={formData.service || ''}
                       onChange={(e) => handleInputChange('service', e.target.value)}
@@ -1146,7 +2129,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Urgency</label>
-                    <select 
+                    <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={formData.urgency || ''}
                       onChange={(e) => handleInputChange('urgency', e.target.value)}
@@ -1160,9 +2143,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter location"
                       value={formData.location || ''}
                       onChange={(e) => handleInputChange('location', e.target.value)}
@@ -1170,11 +2153,11 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Cost</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0.00"
                       value={formData.estimatedCost || ''}
                       onChange={(e) => handleInputChange('estimatedCost', e.target.value)}
@@ -1183,8 +2166,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('description')}</label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows="3"
                     placeholder="Describe the service request in detail"
                     value={formData.description || ''}
@@ -1211,9 +2194,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Payment ID <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter payment ID"
                       value={formData.paymentId || ''}
                       onChange={(e) => handleInputChange('paymentId', e.target.value)}
@@ -1224,9 +2207,9 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Customer <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter customer name"
                       value={formData.customer || ''}
                       onChange={(e) => handleInputChange('customer', e.target.value)}
@@ -1239,11 +2222,11 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Amount <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0.00"
                       value={formData.amount || ''}
                       onChange={(e) => handleInputChange('amount', e.target.value)}
@@ -1252,7 +2235,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-                    <select 
+                    <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={formData.paymentMethod || ''}
                       onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
@@ -1267,7 +2250,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select 
+                    <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={formData.status || ''}
                       onChange={(e) => handleInputChange('status', e.target.value)}
@@ -1283,18 +2266,18 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Date</label>
-                    <input 
-                      type="datetime-local" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="datetime-local"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={formData.transactionDate || ''}
                       onChange={(e) => handleInputChange('transactionDate', e.target.value)}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter reference number"
                       value={formData.referenceNumber || ''}
                       onChange={(e) => handleInputChange('referenceNumber', e.target.value)}
@@ -1303,8 +2286,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows="3"
                     placeholder="Additional payment notes"
                     value={formData.notes || ''}
@@ -1316,142 +2299,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
           </div>
         );
 
-      case 'booking':
-        return (
-          <div className="space-y-6">
-            {/* Booking Information */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                <CalendarDays className="w-5 h-5 mr-2" />
-                Booking Information
-              </h4>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Booking ID <span className="text-red-500">*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      placeholder="Enter booking ID"
-                      value={formData.bookingId || ''}
-                      onChange={(e) => handleInputChange('bookingId', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Customer <span className="text-red-500">*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      placeholder="Enter customer name"
-                      value={formData.customer || ''}
-                      onChange={(e) => handleInputChange('customer', e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Service <span className="text-red-500">*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      placeholder="Enter service name"
-                      value={formData.service || ''}
-                      onChange={(e) => handleInputChange('service', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Service Provider</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      placeholder="Enter provider name"
-                      value={formData.provider || ''}
-                      onChange={(e) => handleInputChange('provider', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Booking Date</label>
-                    <input 
-                      type="date" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      value={formData.bookingDate || ''}
-                      onChange={(e) => handleInputChange('bookingDate', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                    <input 
-                      type="time" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      value={formData.time || ''}
-                      onChange={(e) => handleInputChange('time', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      value={formData.status || ''}
-                      onChange={(e) => handleInputChange('status', e.target.value)}
-                    >
-                      <option value="">Select status</option>
-                      <option value="Pending">Pending</option>
-                      <option value="Confirmed">Confirmed</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      placeholder="Enter service location"
-                      value={formData.location || ''}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Total Amount</label>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                      placeholder="0.00"
-                      value={formData.totalAmount || ''}
-                      onChange={(e) => handleInputChange('totalAmount', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
-                  <textarea 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                    rows="3"
-                    placeholder="Any special instructions for the booking"
-                    value={formData.specialInstructions || ''}
-                    onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+      /* duplicate booking case removed (kept earlier booking case) */
 
       default:
         return (
@@ -1474,8 +2322,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
             <Icon className="w-6 h-6 mr-3 text-gray-600" />
             <h3 className="text-xl font-semibold text-gray-900">{getModalTitle()}</h3>
           </div>
-          <button 
-            onClick={handleClose} 
+          <button
+            onClick={handleClose}
             className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
@@ -1490,18 +2338,29 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
 
           {/* Footer */}
           <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={handleClose}
               className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
             >
               {t('cancel')}
             </button>
-            <button 
+            <button
               type="submit"
-              className="px-6 py-2 btn-theme-primary rounded-lg transition-colors"
+              disabled={submitting}
+              className={`px-6 py-2 btn-theme-primary rounded-lg transition-colors flex items-center justify-center ${submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
-              {t('save')}
+              {submitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  {t('saving') || 'Saving...'}
+                </>
+              ) : (
+                t('save')
+              )}
             </button>
           </div>
         </form>

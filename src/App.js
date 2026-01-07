@@ -1,19 +1,40 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { LocalizationProvider } from './contexts/LocalizationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AppProvider, useAppContext } from './contexts/AppContext';
+import { UserProvider } from './contexts/UserContext';
+import { ToastProvider } from './contexts/ToastContext';
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 import Layout from './components/layout/Layout';
-import { 
+import {
   Login,
   TwoFactorAuth,
-  Dashboard, 
-  UserManagement, 
-  ServiceProviders, 
-  ServiceManagement, 
-  Categories, 
-  BookingManagement, 
-  Reports, 
+  Dashboard,
+  UserManagement,
+  AdminUsers,
+  ServiceProviders,
+  ServiceManagement,
+  Categories,
+  CategoryManagement,
+  SubcategoryManagement,
+  BookingManagement,
+  Reports,
   Settings,
   ServiceRequests,
   PendingBookings,
@@ -58,40 +79,20 @@ const ContentManagement = () => {
   );
 };
 
-// Admin Users placeholder
-const AdminUsers = () => {
-  const { t } = useLocalization();
-  const { setModalType, setShowModal } = useAppContext();
+// AdminUsers page is provided in ./components/pages/AdminUsers
 
-  const handleAddAdminUser = () => {
-    setModalType('admin-user');
-    setShowModal(true);
-  };
-
-  const adminColumns = [
-    t('name'), 
-    t('email'), 
-    t('role'), 
-    'Last Login', 
-    t('status'), 
-    'Permissions'
-  ];
-
-  return (
-    <DataTable
-      data={[]}
-      columns={adminColumns}
-      title={t('adminUsers')}
-      onAdd={handleAddAdminUser}
-      searchFields={['name', 'email', 'role']}
-    />
-  );
-};
-
-// Protected Route Component
+// Protected Route Component - Redirect to login if not authenticated
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('authToken');
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  const is2FAVerified = localStorage.getItem('2faVerified');
+  return (isAuthenticated && is2FAVerified === 'true') ? children : <Navigate to="/login" replace />;
+};
+
+// Public Route Component - Redirect to dashboard if already authenticated
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('authToken');
+  const is2FAVerified = localStorage.getItem('2faVerified');
+  return (isAuthenticated && is2FAVerified === 'true') ? <Navigate to="/dashboard" replace /> : children;
 };
 
 const ServicePlatformAdmin = () => {
@@ -111,18 +112,32 @@ const ServicePlatformAdmin = () => {
   return (
     <>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/verify-2fa" element={<TwoFactorAuth />} />
-        
+        {/* Public Routes - Redirect to dashboard if already authenticated */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/verify-2fa"
+          element={
+            <PublicRoute>
+              <TwoFactorAuth />
+            </PublicRoute>
+          }
+        />
+
         {/* Protected Routes - Redirect to login if not authenticated */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             <ProtectedRoute>
               <Navigate to="/dashboard" replace />
             </ProtectedRoute>
-          } 
+          }
         />
         <Route
           path="/dashboard"
@@ -139,7 +154,8 @@ const ServicePlatformAdmin = () => {
         <Route path="/users" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><UserManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/providers" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceProviders /></Layout></div></ProtectedRoute>} />
         <Route path="/services" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceManagement /></Layout></div></ProtectedRoute>} />
-        <Route path="/categories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><Categories /></Layout></div></ProtectedRoute>} />
+        <Route path="/categories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><CategoryManagement /></Layout></div></ProtectedRoute>} />
+        <Route path="/subcategories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><SubcategoryManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/service-requests" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceRequests /></Layout></div></ProtectedRoute>} />
         <Route path="/bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><BookingManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/pending-bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><PendingBookings /></Layout></div></ProtectedRoute>} />
@@ -166,17 +182,17 @@ const ServicePlatformAdmin = () => {
       {/* Global Modals - only show when authenticated */}
       {localStorage.getItem('authToken') && (
         <>
-          <AddItemModal 
-            isOpen={showModal} 
-            onClose={() => setShowModal(false)} 
+          <AddItemModal
+            isOpen={showModal}
+            onClose={() => setShowModal(false)}
             type={modalType}
           />
-          <ProfileSettingsModal 
-            isOpen={showProfileSettings} 
-            onClose={() => setShowProfileSettings(false)} 
+          <ProfileSettingsModal
+            isOpen={showProfileSettings}
+            onClose={() => setShowProfileSettings(false)}
           />
-          <DetailViewModal 
-            isOpen={showDetailView} 
+          <DetailViewModal
+            isOpen={showDetailView}
             onClose={closeDetailView}
             item={detailViewItem}
             type={detailViewType}
@@ -189,15 +205,23 @@ const ServicePlatformAdmin = () => {
 
 const App = () => {
   return (
-    <ThemeProvider>
-      <LocalizationProvider>
-        <AppProvider>
-          <Router>
-            <ServicePlatformAdmin />
-          </Router>
-        </AppProvider>
-      </LocalizationProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <LocalizationProvider>
+          <AppProvider>
+            <UserProvider>
+              <ToastProvider>
+                <Router>
+                  <ServicePlatformAdmin />
+                </Router>
+              </ToastProvider>
+            </UserProvider>
+          </AppProvider>
+        </LocalizationProvider>
+      </ThemeProvider>
+      {/* React Query Devtools - only in development */}
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
   );
 };
 

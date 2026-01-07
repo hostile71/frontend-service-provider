@@ -6,11 +6,15 @@ import {
   Bell, 
   ChevronDown, 
   Settings, 
-  LogOut 
+  LogOut,
+  User
 } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAppContext } from '../../contexts/AppContext';
+import { useUser } from '../../contexts/UserContext';
+import { useLogout } from '../../hooks/useAuth';
+import { buildAssetUrl, getUserInitials, getUserFullName } from '../../utils/assetHelpers';
 import { MENU_ITEMS, LANGUAGES } from '../../constants';
 
 const Header = () => {
@@ -24,15 +28,16 @@ const Header = () => {
     setShowProfileMenu, 
     setShowProfileSettings 
   } = useAppContext();
+  
+  // Get logged-in user data
+  const { profile, profileLoading, assetUrl } = useUser();
+  const logoutMutation = useLogout();
 
   const handleLogout = () => {
-    // Clear authentication token
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userEmail');
     // Close profile menu
     setShowProfileMenu(false);
-    // Redirect to login page
-    navigate('/login');
+    // Call logout mutation which handles everything
+    logoutMutation.mutate();
   };
 
   const getPageTitle = () => {
@@ -94,12 +99,28 @@ const Header = () => {
               className={`flex items-center cursor-pointer ${isRTL ? 'space-x-reverse space-x-2' : 'space-x-2'}`}
               onClick={() => setShowProfileMenu(!showProfileMenu)}
             >
-              <div className="w-8 h-8 bg-theme-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">RS</span>
+              <div className="w-8 h-8 bg-theme-primary rounded-full flex items-center justify-center overflow-hidden">
+                {profileLoading ? (
+                  <User className="w-4 h-4 text-white" />
+                ) : buildAssetUrl(assetUrl, profile?.profile_picture) ? (
+                  <img 
+                    src={buildAssetUrl(assetUrl, profile.profile_picture)}
+                    alt={getUserFullName(profile)}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white text-sm font-medium">
+                    {getUserInitials(profile)}
+                  </span>
+                )}
               </div>
               <div className="text-sm hidden sm:block">
-                <p className="font-medium text-theme-text">Rabius Sani</p>
-                <p className="text-theme-text-secondary text-xs">{t('superAdmin')}</p>
+                <p className="font-medium text-theme-text">
+                  {profileLoading ? 'Loading...' : getUserFullName(profile)}
+                </p>
+                <p className="text-theme-text-secondary text-xs">
+                  {profileLoading ? '...' : (profile?.role?.role_name || profile?.role || t('superAdmin'))}
+                </p>
               </div>
               <ChevronDown className="w-4 h-4 text-theme-text-secondary hidden sm:block" />
             </button>
