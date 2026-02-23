@@ -49,7 +49,7 @@ const Security = () => {
     const fetchSettings = async () => {
       try {
         const response = await securityService.getSettings();
-        setSecuritySettings(response.data.data || []);
+        setSecuritySettings(response.data.settings || []);
       } catch (err) {
         console.error('Error fetching security settings:', err);
       }
@@ -84,7 +84,7 @@ const Security = () => {
     const fetchLogs = async () => {
       try {
         const response = await securityService.getLogs({ page });
-        setSecurityLogs(response.data.data || response.data || []);
+        setSecurityLogs(response.data.logs || response.data || []);
       } catch (err) {
         console.error('Error fetching security logs:', err);
       }
@@ -177,12 +177,12 @@ const Security = () => {
     }
   ];
 
-  // Fetch security settings
+  // Fetch security settings with fallback
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const response = await securityService.getSettings();
-        const settings = response.data.data || [];
+        const settings = response.data.settings || [];
         // If settings exist, use them; otherwise use default settings as fallback
         setSecuritySettings(settings.length > 0 ? settings : defaultSecuritySettings);
       } catch (err) {
@@ -196,6 +196,17 @@ const Security = () => {
   }, []);
 
   const settingsToDisplay = securitySettings.length > 0 ? securitySettings : defaultSecuritySettings;
+
+  // Map icon based on setting name
+  const getSettingIcon = (settingName) => {
+    const iconMap = {
+      'twoFactorAuth': Shield,
+      'sessionTimeout': Lock,
+      'passwordPolicy': Key,
+      'loginMonitoring': Eye,
+    };
+    return iconMap[settingName] || Eye;
+  };
 
   return (
     <div>
@@ -282,7 +293,7 @@ const Security = () => {
             <h2 className="text-lg font-semibold mb-4">Security Settings</h2>
             <div className="space-y-4">
               {settingsToDisplay.map((setting) => {
-                const Icon = setting.icon || Eye;
+                const Icon = getSettingIcon(setting.name) || getSettingIcon(setting.icon);
                 return (
                   <div key={setting.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-3">
@@ -290,7 +301,7 @@ const Security = () => {
                         <Icon className="w-5 h-5 text-gray-600" />
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900">{setting.title}</h3>
+                        <h3 className="font-medium text-gray-900">{setting.display_name || setting.title}</h3>
                         <p className="text-sm text-gray-600">{setting.description}</p>
                       </div>
                     </div>
