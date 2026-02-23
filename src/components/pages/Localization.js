@@ -1,104 +1,99 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useAppContext } from '../../contexts/AppContext';
-import DataTable from '../ui/DataTable';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { localizationService } from '../../services';
+import { useDeleteTranslation } from '../../hooks/useLocalization';
+import ApiDataTable from '../ui/ApiDataTable';
 
 const Localization = () => {
   const { t, currentLanguage, changeLanguage } = useLocalization();
-  const { setModalType, setShowModal } = useAppContext();
+  const { setModalType, setShowModal, showModal, setEditItem } = useAppContext();
+  const queryClient = useQueryClient();
+  const deleteMutation = useDeleteTranslation();
 
-  const handleAddTranslation = () => {
+  // State management
+  const [languages, setLanguages] = useState([]);
+
+  // Fetch languages on component mount
+  useEffect(() => {
+    const fetchLanguages = async () => {
+      try {
+        const response = await localizationService.getLanguages();
+        setLanguages(response.data.data || []);
+      } catch (err) {
+        console.error('Error fetching languages:', err);
+      }
+    };
+
+    fetchLanguages();
+  }, []);
+
+  // Fetch translations using React Query for automatic refetch
+  const { data, isLoading: loading, error } = useQuery({
+    queryKey: ['translations'],
+    queryFn: () => localizationService.getTranslations({
+      page: 1,
+      limit: 50,
+      status: 'active'
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const translationKeys = data?.data?.data || [];
+
+  // Refetch translations when modal closes (after adding/editing)
+  useEffect(() => {
+    if (!showModal) {
+      queryClient.invalidateQueries({ queryKey: ['translations'] });
+    }
+  }, [showModal, queryClient]);
+
+  const handleAddTranslation = useCallback(() => {
+    setEditItem(null);
     setModalType('translation');
     setShowModal(true);
-  };
+  }, [setEditItem, setModalType, setShowModal]);
 
-  const languages = [
-    { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸' },
-    { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇴🇲' }
-  ];
+  const handleEdit = useCallback((item) => {
+    setEditItem(item);
+    setModalType('translation');
+    setShowModal(true);
+  }, [setEditItem, setModalType, setShowModal]);
 
-  const translationKeys = [
-    { 
-      id: 1,
-      key: 'dashboard', 
-      english: 'Dashboard', 
-      arabic: 'لوحة القيادة',
-      category: 'Navigation',
-      status: 'active',
-      description: 'Main dashboard page title'
-    },
-    { 
-      id: 2,
-      key: 'userManagement', 
-      english: 'User Management', 
-      arabic: 'إدارة المستخدمين',
-      category: 'Navigation',
-      status: 'active',
-      description: 'User management section title'
-    },
-    { 
-      id: 3,
-      key: 'serviceManagement', 
-      english: 'Service Management', 
-      arabic: 'إدارة الخدمات',
-      category: 'Navigation',
-      status: 'active',
-      description: 'Service management section title'
-    },
-    { 
-      id: 4,
-      key: 'bookingManagement', 
-      english: 'Booking Management', 
-      arabic: 'إدارة الحجوزات',
-      category: 'Navigation',
-      status: 'active',
-      description: 'Booking management section title'
-    },
-    { 
-      id: 5,
-      key: 'financial', 
-      english: 'Financial', 
-      arabic: 'المالية',
-      category: 'Navigation',
-      status: 'active',
-      description: 'Financial section title'
-    },
-    { 
-      id: 6,
-      key: 'reportsAnalytics', 
-      english: 'Reports & Analytics', 
-      arabic: 'التقارير والتحليلات',
-      category: 'Navigation',
-      status: 'active',
-      description: 'Reports and analytics section title'
-    },
-    { 
-      id: 7,
-      key: 'contentManagement', 
-      english: 'Content Management', 
-      arabic: 'إدارة المحتوى',
-      category: 'Navigation',
-      status: 'active',
-      description: 'Content management section title'
-    },
-    { 
-      id: 8,
-      key: 'systemSettings', 
-      english: 'System Settings', 
-      arabic: 'إعدادات النظام',
-      category: 'Navigation',
-      status: 'active',
-      description: 'System settings section title'
+  const handleDeleteTranslation = useCallback((item) => {
+    if (window.confirm('Are you sure you want to delete this translation?')) {
+      deleteMutation.mutate(item.id, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['translations'] });
+        }
+      });
     }
-  ];
+  }, [deleteMutation, queryClient]);
 
   const translationColumns = [
-    'Key', 
-    'English', 
-    'Arabic', 
+    'Key',
+    'English',
+    'Arabic',
     'Category',
     t('status')
   ];
+
+  // Show error state
+  if (error && translationKeys.length === 0) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-red-700 font-semibold mb-2">Error loading data</p>
+        <p className="text-red-600 text-sm">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -117,34 +112,39 @@ const Localization = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Active Language
             </label>
-            <div className="flex items-center space-x-3">
-              {languages.map(lang => (
-                <button
-                  key={lang.code}
-                  onClick={() => changeLanguage(lang.code)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg border ${
-                    currentLanguage === lang.code
-                      ? 'bg-blue-50 border-blue-500 text-blue-700'
-                      : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className="text-lg">{lang.flag}</span>
-                  <span>{lang.nativeName}</span>
-                </button>
-              ))}
+            <div className="flex items-center space-x-3 flex-wrap gap-2">
+              {languages.length > 0 ? (
+                languages.map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => changeLanguage(lang.code)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg border ${currentLanguage === lang.code
+                        ? 'bg-blue-50 border-blue-500 text-blue-700'
+                        : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
+                      }`}
+                  >
+                    <span className="text-lg">{lang.flag}</span>
+                    <span>{lang.native_name}</span>
+                  </button>
+                ))
+              ) : (
+                <p className="text-gray-500">Loading languages...</p>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Translation Management using DataTable */}
-      <DataTable
+      {/* Translation Management using ApiDataTable */}
+      <ApiDataTable
         data={translationKeys}
         columns={translationColumns}
         title="Translation Management"
         onAdd={handleAddTranslation}
-        searchFields={['key', 'english', 'arabic', 'category']}
+        onEdit={handleEdit}
+        onDelete={handleDeleteTranslation}
         itemType="translation"
+        isLoading={loading}
         renderCustomCell={(item, column, value, fieldKey) => {
           if (column === 'Arabic') {
             return <span dir="rtl" className="text-sm text-gray-900">{value}</span>;

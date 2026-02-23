@@ -153,37 +153,49 @@ export const THEME_CONFIGS = {
 
 export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState(() => {
-    // Get theme from localStorage or default
-    return localStorage.getItem('theme') || THEMES.DEFAULT;
+    // Get theme from localStorage or default, normalized to lowercase
+    const stored = localStorage.getItem('theme') || THEMES.DEFAULT;
+    return stored.toLowerCase();
   });
 
-  const themeConfig = THEME_CONFIGS[currentTheme];
+  const themeConfig = THEME_CONFIGS[currentTheme] || THEME_CONFIGS[THEMES.DEFAULT];
 
   const changeTheme = (theme) => {
-    setCurrentTheme(theme);
-    localStorage.setItem('theme', theme);
-    
+    // Normalize theme name to lowercase to match THEME_CONFIGS keys
+    const normalizedTheme = (theme || '').toLowerCase();
+
+    // Validate theme exists in configs
+    if (!THEME_CONFIGS[normalizedTheme]) {
+      console.warn(`Theme "${normalizedTheme}" not found. Defaulting to "default"`);
+      setCurrentTheme(THEMES.DEFAULT);
+      localStorage.setItem('theme', THEMES.DEFAULT);
+      return;
+    }
+
+    setCurrentTheme(normalizedTheme);
+    localStorage.setItem('theme', normalizedTheme);
+
     // Apply theme to document root for CSS variables
     const root = document.documentElement;
-    const config = THEME_CONFIGS[theme];
-    
+    const config = THEME_CONFIGS[normalizedTheme];
+
     // Remove existing theme classes
     const themeClasses = ['theme-default', 'theme-purple', 'theme-green', 'theme-orange', 'theme-blue', 'theme-pink', 'theme-dark'];
     root.classList.remove(...themeClasses);
     document.body.classList.remove(...themeClasses);
-    
+
     // Add new theme class
-    root.classList.add(`theme-${theme}`);
-    document.body.classList.add(`theme-${theme}`);
-    
+    root.classList.add(`theme-${normalizedTheme}`);
+    document.body.classList.add(`theme-${normalizedTheme}`);
+
     // Set CSS custom properties for the theme - these will override the CSS file values
     root.style.setProperty('--theme-primary', config.primaryColor);
     root.style.setProperty('--theme-accent', config.accentColor);
     root.style.setProperty('--theme-primary-rgb', config.primaryRgb);
     root.style.setProperty('--theme-accent-rgb', config.accentRgb);
-    
+
     // Set theme-aware colors based on theme type
-    if (theme === THEMES.DARK) {
+    if (normalizedTheme === THEMES.DARK) {
       root.style.setProperty('--theme-text', '#ffffff');
       root.style.setProperty('--theme-text-secondary', '#d1d5db');
       root.style.setProperty('--theme-card', '#1f2937');
@@ -201,7 +213,7 @@ export const ThemeProvider = ({ children }) => {
       root.style.setProperty('--theme-sidebar', '#ffffff');
       root.style.setProperty('--theme-header', '#ffffff');
     }
-    
+
     // Force a repaint to ensure changes are applied
     document.body.style.display = 'none';
     // eslint-disable-next-line no-unused-expressions

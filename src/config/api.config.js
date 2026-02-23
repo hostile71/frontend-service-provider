@@ -5,8 +5,8 @@
  */
 
 export const API_CONFIG = {
-  // BASE_URL: 'http://localhost/backend-service-provider',
-  BASE_URL: 'https://backend.servi-online.com',
+  BASE_URL: 'http://localhost/backend-service-provider',
+  // BASE_URL: 'https://backend.servi-online.com',
   TIMEOUT: 30000, // 30 seconds
   HEADERS: {
     'Content-Type': 'application/json',
@@ -83,6 +83,74 @@ export const API_ENDPOINTS = {
     LIST: '/api/payments',
     GET: (id) => `/api/payments/${id}`,
     CREATE: '/api/payments',
+  },
+  // Localization
+  LOCALIZATION: {
+    TRANSLATIONS: {
+      LIST: '/api/v1/localization/translations',
+      GET: (id) => `/api/v1/localization/translations/${id}`,
+      CREATE: '/api/v1/localization/translations',
+      UPDATE: (id) => `/api/v1/localization/translations/${id}`,
+      DELETE: (id) => `/api/v1/localization/translations/${id}`,
+      CATEGORIES: '/api/v1/localization/categories',
+    },
+    LANGUAGES: {
+      LIST: '/api/v1/localization/languages',
+      GET: (code) => `/api/v1/localization/languages/${code}`,
+      CREATE: '/api/v1/localization/languages',
+      UPDATE: (code) => `/api/v1/localization/languages/${code}`,
+      DELETE: (code) => `/api/v1/localization/languages/${code}`,
+    },
+  },
+  // Settings
+  SETTINGS: {
+    GENERAL: {
+      LIST: '/api/v1/settings',
+      GET: (key) => `/api/v1/settings/${key}`,
+      UPDATE: (key) => `/api/v1/settings/${key}`,
+    },
+    THEMES: {
+      LIST: '/api/v1/settings/themes',
+      GET: (name) => `/api/v1/settings/themes/${name}`,
+      CREATE: '/api/v1/settings/themes',
+      UPDATE: (name) => `/api/v1/settings/themes/${name}`,
+      DELETE: (name) => `/api/v1/settings/themes/${name}`,
+    },
+    PREFERENCES: {
+      GET: '/api/v1/settings/preferences',
+      UPDATE: '/api/v1/settings/preferences',
+    },
+    APP_CONFIG: {
+      GET: '/api/v1/settings/app-config',
+      UPDATE: '/api/v1/settings/app-config',
+    },
+  },
+  // Security
+  SECURITY: {
+    OVERVIEW: '/api/v1/security/overview',
+    SETTINGS: {
+      LIST: '/api/v1/security/settings',
+      GET: (name) => `/api/v1/security/settings/${name}`,
+      UPDATE: (name) => `/api/v1/security/settings/${name}`,
+    },
+    PASSWORD_POLICY: {
+      GET: '/api/v1/security/password-policy',
+      UPDATE: '/api/v1/security/password-policy',
+    },
+    LOGS: {
+      LIST: '/api/v1/security/logs',
+      GET: (id) => `/api/v1/security/logs/${id}`,
+      DELETE: '/api/v1/security/logs',
+    },
+    FAILED_ATTEMPTS: {
+      LIST: '/api/v1/security/failed-attempts',
+      UNBLOCK: (id) => `/api/v1/security/failed-attempts/${id}/unblock`,
+    },
+    SESSIONS: {
+      LIST: '/api/v1/security/sessions',
+      DELETE: (sessionId) => `/api/v1/security/sessions/${sessionId}`,
+      DELETE_ALL: '/api/v1/security/sessions',
+    },
   },
 };
 

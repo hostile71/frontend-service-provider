@@ -11,6 +11,7 @@ import { useCreateBooking, useUpdateBooking } from '../../hooks/useBookings';
 import { useUsers } from '../../hooks/useUsers';
 import { useUser } from '../../contexts/UserContext';
 import { buildAssetUrl } from '../../utils/helpers';
+import { localizationService, settingsService, securityService } from '../../services';
 
 const AddItemModal = ({ isOpen, onClose, type }) => {
   const { t, isRTL } = useLocalization();
@@ -82,6 +83,11 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
         banner_image: editItem.banner_image || editItem.image || editItem.banner || null,
         // images may come as array of paths/objects
         images: Array.isArray(editItem.images) ? editItem.images : (editItem.images ? [editItem.images] : []),
+        // Translation fields mapping
+        translationKey: editItem.translationKey || editItem.key || '',
+        englishText: editItem.englishText || editItem.en || editItem.english || '',
+        arabicText: editItem.arabicText || editItem.ar || editItem.arabic || '',
+        translationCategory: editItem.translationCategory || editItem.category || '',
       };
 
       // Convert booking_date from ISO format to YYYY-MM-DD for date input
@@ -699,6 +705,116 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
             const successMsg = result?.message || t('createSuccess') || 'Booking created successfully!';
             toast.success(successMsg);
             queryClient.invalidateQueries({ queryKey: ['bookings'] });
+          }
+        } else if (type === 'translation') {
+          // Translation: create/update translation keys
+          if (isEditMode && editItem) {
+            // Update flow
+            const translationData = {
+              key: formData.translationKey,
+              category: formData.translationCategory,
+              en: formData.englishText,
+              ar: formData.arabicText
+            };
+
+            try {
+              const result = await localizationService.updateTranslation(editItem.id, translationData);
+              const successMsg = result?.message || t('updateSuccess') || 'Translation updated successfully!';
+              toast.success(successMsg);
+              queryClient.invalidateQueries({ queryKey: ['translations'] });
+            } catch (err) {
+              throw err;
+            }
+          } else {
+            // Create flow
+            const translationData = {
+              key: formData.translationKey,
+              category: formData.translationCategory,
+              en: formData.englishText,
+              ar: formData.arabicText
+            };
+
+            try {
+              const result = await localizationService.createTranslation(translationData);
+              const successMsg = result?.message || t('createSuccess') || 'Translation created successfully!';
+              toast.success(successMsg);
+              queryClient.invalidateQueries({ queryKey: ['translations'] });
+            } catch (err) {
+              throw err;
+            }
+          }
+        } else if (type === 'setting') {
+          // Setting: create/update settings
+          if (isEditMode && editItem) {
+            // Update flow
+            const settingData = {
+              key: formData.settingKey,
+              value: formData.settingValue,
+              description: formData.settingDescription
+            };
+
+            try {
+              const result = await settingsService.updateSetting(editItem.id, settingData);
+              const successMsg = result?.message || t('updateSuccess') || 'Setting updated successfully!';
+              toast.success(successMsg);
+              queryClient.invalidateQueries({ queryKey: ['settings'] });
+            } catch (err) {
+              throw err;
+            }
+          } else {
+            // Create flow
+            const settingData = {
+              key: formData.settingKey,
+              value: formData.settingValue,
+              description: formData.settingDescription
+            };
+
+            try {
+              const result = await settingsService.createSetting?.(settingData);
+              const successMsg = result?.message || t('createSuccess') || 'Setting created successfully!';
+              toast.success(successMsg);
+              queryClient.invalidateQueries({ queryKey: ['settings'] });
+            } catch (err) {
+              // If createSetting doesn't exist, just show warning
+              console.warn('Create setting not available:', err);
+              toast.warning('Setting creation not yet available');
+            }
+          }
+        } else if (type === 'security') {
+          // Security: create/update security settings
+          if (isEditMode && editItem) {
+            // Update flow
+            const securityData = {
+              key: formData.securityKey,
+              value: formData.securityValue,
+              description: formData.securityDescription
+            };
+
+            try {
+              const result = await securityService.updateSetting(editItem.id, securityData);
+              const successMsg = result?.message || t('updateSuccess') || 'Security setting updated successfully!';
+              toast.success(successMsg);
+              queryClient.invalidateQueries({ queryKey: ['security'] });
+            } catch (err) {
+              throw err;
+            }
+          } else {
+            // Create flow
+            const securityData = {
+              key: formData.securityKey,
+              value: formData.securityValue,
+              description: formData.securityDescription
+            };
+
+            try {
+              const result = await securityService.updateSetting?.(null, securityData);
+              const successMsg = result?.message || t('createSuccess') || 'Security setting created successfully!';
+              toast.success(successMsg);
+              queryClient.invalidateQueries({ queryKey: ['security'] });
+            } catch (err) {
+              console.warn('Create security setting not available:', err);
+              toast.warning('Security setting creation not yet available');
+            }
           }
         }
 

@@ -1,0 +1,136 @@
+{
+  "status": true,
+  "code": 200,
+  "message": "Security data retrieved successfully",
+  "overview": {
+    "activeSessions": 24,
+    "failedAttempts": 3,
+    "securityScore": 85,
+    "twoFactorEnabled": "18/24",
+    "lastSecurityUpdate": "2024-02-24T10:30:00Z"
+  },
+  "settings": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "title": "Two-Factor Authentication",
+        "description": "Add an extra layer of security to admin accounts",
+        "enabled": true,
+        "key": "two_factor_auth"
+      },
+      {
+        "id": 2,
+        "title": "Session Timeout",
+        "description": "Automatically log out inactive users",
+        "enabled": true,
+        "key": "session_timeout"
+      },
+      {
+        "id": 3,
+        "title": "Password Policy",
+        "description": "Enforce strong password requirements",
+        "enabled": true,
+        "key": "password_policy"
+      },
+      {
+        "id": 4,
+        "title": "Login Monitoring",
+        "description": "Track and monitor login attempts",
+        "enabled": false,
+        "key": "login_monitoring"
+      }
+    ]
+  },
+  "passwordPolicy": {
+    "minimumLength": 8,
+    "expiryDays": 90,
+    "requireUppercase": true,
+    "requireNumbers": true,
+    "requireSpecial": true,
+    "preventReuse": false,
+    "maxLoginAttempts": 5,
+    "lockoutDurationMinutes": 15
+  },
+  "logs": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "event": "Failed Login Attempt",
+        "user": "admin@example.com",
+        "user_email": "admin@example.com",
+        "ip_address": "192.168.1.100",
+        "ip": "192.168.1.100",
+        "timestamp": "2024-02-24 14:30:25",
+        "created_at": "2024-02-24T14:30:25Z",
+        "severity": "High",
+        "status": "Blocked",
+        "details": "Invalid credentials provided"
+      },
+      {
+        "id": 2,
+        "event": "Password Changed",
+        "user": "manager@example.com",
+        "user_email": "manager@example.com",
+        "ip_address": "192.168.1.101",
+        "ip": "192.168.1.101",
+        "timestamp": "2024-02-24 10:15:10",
+        "created_at": "2024-02-24T10:15:10Z",
+        "severity": "Medium",
+        "status": "Success",
+        "details": "Password updated successfully"
+      },
+      {
+        "id": 3,
+        "event": "Admin Login",
+        "user": "admin@example.com",
+        "user_email": "admin@example.com",
+        "ip_address": "192.168.1.102",
+        "ip": "192.168.1.102",
+        "timestamp": "2024-02-24 09:00:00",
+        "created_at": "2024-02-24T09:00:00Z",
+        "severity": "Low",
+        "status": "Success",
+        "details": "Admin logged in successfully"
+      },
+      {
+        "id": 4,
+        "event": "2FA Enabled",
+        "user": "support@example.com",
+        "user_email": "support@example.com",
+        "ip_address": "192.168.1.103",
+        "ip": "192.168.1.103",
+        "timestamp": "2024-02-23 16:45:30",
+        "created_at": "2024-02-23T16:45:30Z",
+        "severity": "Low",
+        "status": "Success",
+        "details": "Two-factor authentication enabled"
+      },
+      {
+        "id": 5,
+        "event": "Suspicious Activity",
+        "user": "unknown",
+        "user_email": "unknown",
+        "ip_address": "203.0.113.50",
+        "ip": "203.0.113.50",
+        "timestamp": "2024-02-23 15:20:00",
+        "created_at": "2024-02-23T15:20:00Z",
+        "severity": "High",
+        "status": "Blocked",
+        "details": "Multiple failed login attempts detected"
+      }
+    ],
+    "first_page_url": "http://localhost/api/v1/security/logs?page=1",
+    "from": 1,
+    "last_page": 1,
+    "last_page_url": "http://localhost/api/v1/security/logs?page=1",
+    "links": [],
+    "next_page_url": null,
+    "path": "http://localhost/api/v1/security/logs",
+    "per_page": 15,
+    "prev_page_url": null,
+    "to": 5,
+    "total": 5
+  }
+}

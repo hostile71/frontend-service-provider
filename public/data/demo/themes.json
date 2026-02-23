@@ -1,0 +1,89 @@
+{
+  "status": true,
+  "code": 200,
+  "message": "Themes retrieved successfully",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "name": "DEFAULT",
+        "label": "Default Blue",
+        "primary_color": "#3B82F6",
+        "accent_color": "#1F2937",
+        "secondary_color": "#E5E7EB",
+        "is_dark_mode": false,
+        "is_active": true,
+        "css_variables": {
+          "--primary": "#3B82F6",
+          "--accent": "#1F2937",
+          "--secondary": "#E5E7EB"
+        },
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 2,
+        "name": "PURPLE",
+        "label": "Royal Purple",
+        "primary_color": "#A855F7",
+        "accent_color": "#1F2937",
+        "secondary_color": "#F3E8FF",
+        "is_dark_mode": false,
+        "is_active": true,
+        "css_variables": {
+          "--primary": "#A855F7",
+          "--accent": "#1F2937",
+          "--secondary": "#F3E8FF"
+        },
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 3,
+        "name": "GREEN",
+        "label": "Nature Green",
+        "primary_color": "#10B981",
+        "accent_color": "#1F2937",
+        "secondary_color": "#D1FAE5",
+        "is_dark_mode": false,
+        "is_active": true,
+        "css_variables": {
+          "--primary": "#10B981",
+          "--accent": "#1F2937",
+          "--secondary": "#D1FAE5"
+        },
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 4,
+        "name": "ORANGE",
+        "label": "Sunset Orange",
+        "primary_color": "#F97316",
+        "accent_color": "#1F2937",
+        "secondary_color": "#FFEDD5",
+        "is_dark_mode": false,
+        "is_active": true,
+        "css_variables": {
+          "--primary": "#F97316",
+          "--accent": "#1F2937",
+          "--secondary": "#FFEDD5"
+        },
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    ],
+    "first_page_url": "http://localhost/api/v1/settings/themes?page=1",
+    "from": 1,
+    "last_page": 1,
+    "last_page_url": "http://localhost/api/v1/settings/themes?page=1",
+    "links": [],
+    "next_page_url": null,
+    "path": "http://localhost/api/v1/settings/themes",
+    "per_page": 15,
+    "prev_page_url": null,
+    "to": 4,
+    "total": 4
+  }
+}

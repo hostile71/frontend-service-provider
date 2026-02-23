@@ -1,0 +1,101 @@
+{
+  "status": true,
+  "code": 200,
+  "message": "Translations retrieved successfully",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "key": "dashboard",
+        "english": "Dashboard",
+        "arabic": "لوحة التحكم",
+        "category": "navigation",
+        "status": "active",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 2,
+        "key": "userManagement",
+        "english": "User Management",
+        "arabic": "إدارة المستخدمين",
+        "category": "navigation",
+        "status": "active",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 3,
+        "key": "settings",
+        "english": "Settings",
+        "arabic": "الإعدادات",
+        "category": "navigation",
+        "status": "active",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 4,
+        "key": "security",
+        "english": "Security",
+        "arabic": "الأمان",
+        "category": "navigation",
+        "status": "active",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 5,
+        "key": "localization",
+        "english": "Localization",
+        "arabic": "التعريب",
+        "category": "navigation",
+        "status": "active",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 6,
+        "key": "save",
+        "english": "Save",
+        "arabic": "حفظ",
+        "category": "actions",
+        "status": "active",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 7,
+        "key": "cancel",
+        "english": "Cancel",
+        "arabic": "إلغاء",
+        "category": "actions",
+        "status": "active",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      },
+      {
+        "id": 8,
+        "key": "delete",
+        "english": "Delete",
+        "arabic": "حذف",
+        "category": "actions",
+        "status": "active",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    ],
+    "first_page_url": "http://localhost/api/v1/localization/translations?page=1",
+    "from": 1,
+    "last_page": 1,
+    "last_page_url": "http://localhost/api/v1/localization/translations?page=1",
+    "links": [],
+    "next_page_url": null,
+    "path": "http://localhost/api/v1/localization/translations",
+    "per_page": 15,
+    "prev_page_url": null,
+    "to": 8,
+    "total": 8
+  }
+}
