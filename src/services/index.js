@@ -15,6 +15,7 @@ export { default as reportService } from './report.service';
 export { default as localizationService } from './localization.service';
 export { default as settingsService } from './settings.service';
 export { default as securityService } from './security.service';
+export { default as notificationService } from './notification.service';
 
 // Add more services as you create them:
 // export { default as providerService } from './provider.service';

@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { UserProvider } from './contexts/UserContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -211,9 +212,11 @@ const App = () => {
           <AppProvider>
             <UserProvider>
               <ToastProvider>
-                <Router>
-                  <ServicePlatformAdmin />
-                </Router>
+                <NotificationProvider>
+                  <Router>
+                    <ServicePlatformAdmin />
+                  </Router>
+                </NotificationProvider>
               </ToastProvider>
             </UserProvider>
           </AppProvider>

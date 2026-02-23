@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Menu, 
   Globe, 
-  Bell, 
   ChevronDown, 
   Settings, 
   LogOut,
@@ -14,6 +13,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { useUser } from '../../contexts/UserContext';
 import { useLogout } from '../../hooks/useAuth';
+import NotificationBell from '../ui/NotificationBell';
 import { buildAssetUrl, getUserInitials, getUserFullName } from '../../utils/assetHelpers';
 import { MENU_ITEMS, LANGUAGES } from '../../constants';
 
@@ -89,10 +89,8 @@ const Header = () => {
             </span>
           </button>
           
-          <button className="p-2 text-theme-text-secondary hover:text-theme-primary relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-          </button>
+          {/* Notification Bell */}
+          <NotificationBell />
           
           <div className="relative">
             <button 

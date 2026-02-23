@@ -152,6 +152,16 @@ export const API_ENDPOINTS = {
       DELETE_ALL: '/api/v1/security/sessions',
     },
   },
+  // Notifications
+  NOTIFICATIONS: {
+    LIST: '/api/v1/notifications',
+    UNREAD_COUNT: '/api/v1/notifications/unread-count',
+    GROUPED: '/api/v1/notifications/grouped',
+    MARK_READ: (id) => `/api/v1/notifications/${id}/read`,
+    MARK_ALL_READ: '/api/v1/notifications/mark-all-read',
+    DELETE: (id) => `/api/v1/notifications/${id}`,
+    DELETE_ALL: '/api/v1/notifications',
+  },
 };
 
 export default API_CONFIG;
