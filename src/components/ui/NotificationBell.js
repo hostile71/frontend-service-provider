@@ -12,7 +12,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useLocalization } from '../../contexts/LocalizationContext';
 
 const NotificationBell = () => {
-  const { unreadCount, notifications, markAsRead, deleteNotification, markAllAsRead } = useNotifications();
+  const { unreadCount, notifications, markAsRead, deleteNotification, markAllAsRead, fetchNotifications, loading } = useNotifications();
   const { themeConfig } = useTheme();
   const { t, isRTL } = useLocalization();
   
@@ -30,6 +30,13 @@ const NotificationBell = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications(1);
+    }
+  }, [isOpen, fetchNotifications]);
 
   const getNotificationIcon = (type) => {
     if (typeof type === 'string') {
@@ -167,6 +174,15 @@ const NotificationBell = () => {
                   </div>
                 </div>
               ))
+            ) : loading ? (
+              <div className="p-8 text-center">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 mb-2">
+                  <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+                </div>
+                <p className="text-sm text-gray-500">
+                  {t('loading') || 'Loading...'}
+                </p>
+              </div>
             ) : (
               <div className="p-8 text-center">
                 <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />

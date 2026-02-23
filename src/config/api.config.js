@@ -14,6 +14,11 @@ export const API_CONFIG = {
   },
 };
 
+// Polling Configuration
+export const POLLING_CONFIG = {
+  NOTIFICATION_INTERVAL: 5000, // 10 seconds (in milliseconds) - change this to adjust polling frequency
+};
+
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {

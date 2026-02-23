@@ -10,6 +10,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import notificationService from '../services/notification.service';
+import { POLLING_CONFIG } from '../config/api.config';
 
 export const NotificationContext = createContext();
 
@@ -151,10 +152,10 @@ export const NotificationProvider = ({ children }) => {
     fetchNotifications(1);
     fetchUnreadCount();
 
-    // Poll for unread count every 30 seconds
+    // Poll for unread count using configurable interval from api.config.js
     const pollInterval = setInterval(() => {
       fetchUnreadCount();
-    }, 30000);
+    }, POLLING_CONFIG.NOTIFICATION_INTERVAL);
 
     return () => clearInterval(pollInterval);
   }, [fetchNotifications, fetchUnreadCount]);
