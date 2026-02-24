@@ -31,6 +31,7 @@ import {
   AdminUsers,
   ServiceProviders,
   ServiceManagement,
+  PromotionManagement,
   Categories,
   CategoryManagement,
   SubcategoryManagement,
@@ -157,6 +158,7 @@ const ServicePlatformAdmin = () => {
         <Route path="/services" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/categories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><CategoryManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/subcategories" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><SubcategoryManagement /></Layout></div></ProtectedRoute>} />
+        <Route path="/promotions" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><PromotionManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/service-requests" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><ServiceRequests /></Layout></div></ProtectedRoute>} />
         <Route path="/bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><BookingManagement /></Layout></div></ProtectedRoute>} />
         <Route path="/pending-bookings" element={<ProtectedRoute><div className={`${isRTL ? 'rtl' : 'ltr'} min-h-screen`} dir={isRTL ? 'rtl' : 'ltr'} style={{ backgroundColor: 'var(--theme-bg)' }}><Layout><PendingBookings /></Layout></div></ProtectedRoute>} />

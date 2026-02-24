@@ -16,7 +16,7 @@ export const API_CONFIG = {
 
 // Polling Configuration
 export const POLLING_CONFIG = {
-  NOTIFICATION_INTERVAL: 5000, // 10 seconds (in milliseconds) - change this to adjust polling frequency
+  NOTIFICATION_INTERVAL: 10000, // 10 seconds (in milliseconds) - change this to adjust polling frequency
 };
 
 export const API_ENDPOINTS = {
@@ -74,6 +74,14 @@ export const API_ENDPOINTS = {
     CREATE: '/api/services',
     UPDATE: (id) => `/api/services/${id}`,
     DELETE: (id) => `/api/services/${id}`,
+  },
+  // Promotions
+  PROMOTIONS: {
+    LIST: '/api/promotions',
+    GET: (id) => `/api/promotions/${id}`,
+    CREATE: '/api/promotions',
+    UPDATE: (id) => `/api/promotions/${id}`,
+    DELETE: (id) => `/api/promotions/${id}`,
   },
   // Bookings
   BOOKINGS: {

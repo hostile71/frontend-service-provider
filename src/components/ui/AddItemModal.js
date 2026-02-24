@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Briefcase, Package, Globe, Image, Bell, CreditCard, FileText, BarChart3, CalendarDays, MapPin } from 'lucide-react';
+import { X, User, Briefcase, Package, Globe, Image, Bell, CreditCard, FileText, BarChart3, CalendarDays, MapPin, Percent } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useServices, useCreateService, useUpdateService } from '../../hooks/useServices';
 import { useSubcategories, useCreateSubcategory, useUpdateSubcategory } from '../../hooks/useSubcategories';
 import { useCategories, useCreateCategory, useUpdateCategory } from '../../hooks/useCategories';
+import { usePromotions, useCreatePromotion, useUpdatePromotion } from '../../hooks/usePromotions';
 import { useCreateBooking, useUpdateBooking } from '../../hooks/useBookings';
 import { useUsers } from '../../hooks/useUsers';
 import { useUser } from '../../contexts/UserContext';
@@ -26,6 +27,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
   const updateCategory = useUpdateCategory();
   const createSubcategory = useCreateSubcategory();
   const updateSubcategory = useUpdateSubcategory();
+  const createPromotion = useCreatePromotion();
+  const updatePromotion = useUpdatePromotion();
   const createBooking = useCreateBooking();
   const updateBooking = useUpdateBooking();
 
@@ -665,6 +668,31 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
             toast.success(successMsg);
             queryClient.invalidateQueries({ queryKey: ['subcategories'] });
           }
+        } else if (type === 'promotion') {
+          // Promotion: all fields are text/numbers - use JSON
+          const promotionData = {
+            title: formData.title,
+            subtitle: formData.subtitle || '',
+            subtext: formData.subtext || '',
+            percentage: parseInt(formData.percentage, 10),
+            max_amount: formData.max_amount ? parseFloat(formData.max_amount) : 0,
+            expired_at: formData.expired_at,
+            is_active: formData.is_active === 1 || formData.is_active === true || formData.is_active === 'true' ? 1 : 0,
+          };
+
+          if (isEditMode && editItem?.id) {
+            // Update flow
+            const result = await updatePromotion.mutateAsync({ id: editItem.id, data: promotionData });
+            const successMsg = result?.message || t('updateSuccess') || 'Promotion updated successfully!';
+            toast.success(successMsg);
+            queryClient.invalidateQueries({ queryKey: ['promotions'] });
+          } else {
+            // Create flow
+            const result = await createPromotion.mutateAsync(promotionData);
+            const successMsg = result?.message || t('createSuccess') || 'Promotion created successfully!';
+            toast.success(successMsg);
+            queryClient.invalidateQueries({ queryKey: ['promotions'] });
+          }
         } else if (type === 'booking') {
           // Booking: all fields are text/numbers - use JSON
           if (isEditMode && editItem) {
@@ -868,6 +896,8 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
         return Briefcase;
       case 'category':
         return Package;
+      case 'promotion':
+        return Percent;
       case 'translation':
         return Globe;
       case 'banner':
@@ -896,6 +926,7 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
       case 'provider': return `${prefix} ${t('serviceProvider')}`;
       case 'service': return `${prefix} ${t('serviceName')}`;
       case 'category': return `${prefix} ${t('category')}`;
+      case 'promotion': return `${prefix} Promotion`;
       case 'subcategory': return `${prefix} Subcategory`;
       case 'admin-user': return `${prefix} Admin User`;
       case 'content': return `${prefix} Content`;
@@ -1319,6 +1350,145 @@ const AddItemModal = ({ isOpen, onClose, type }) => {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        );
+      case 'promotion':
+        return (
+          <div className="space-y-6">
+            {/* Promotion Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <Percent className="w-5 h-5 mr-2" />
+                Promotion Information
+              </h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="e.g., Winter Sale"
+                    value={formData.title || ''}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    required
+                  />
+                  {errors.title && (
+                    <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subtitle
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., Save big this season"
+                    value={formData.subtitle || ''}
+                    onChange={(e) => handleInputChange('subtitle', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description/Subtext
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., Get amazing discounts on all services"
+                    rows="3"
+                    value={formData.subtext || ''}
+                    onChange={(e) => handleInputChange('subtext', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Discount Details */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3">Discount Details</h4>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Discount Percentage <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.percentage ? 'border-red-500' : 'border-gray-300'}`}
+                        placeholder="30"
+                        value={formData.percentage || ''}
+                        onChange={(e) => handleInputChange('percentage', e.target.value)}
+                        required
+                      />
+                      <span className="absolute right-3 top-2.5 text-gray-500">%</span>
+                    </div>
+                    {errors.percentage && (
+                      <p className="text-red-500 text-sm mt-1">{errors.percentage}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Maximum Discount Amount (OMR)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="500"
+                      value={formData.max_amount || ''}
+                      onChange={(e) => handleInputChange('max_amount', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Validity Period */}
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3">Validity Period</h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Expiry Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.expired_at ? 'border-red-500' : 'border-gray-300'}`}
+                    value={formData.expired_at ? formData.expired_at.split('T')[0] : ''}
+                    onChange={(e) => handleInputChange('expired_at', e.target.value)}
+                    required
+                  />
+                  {errors.expired_at && (
+                    <p className="text-red-500 text-sm mt-1">{errors.expired_at}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3">Status</h4>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    className="h-4 w-4 rounded border-gray-300"
+                    checked={formData.is_active === 1 || formData.is_active === true || formData.is_active === 'true'}
+                    onChange={(e) => handleInputChange('is_active', e.target.checked ? 1 : 0)}
+                  />
+                  <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+                    Active
+                  </label>
+                </div>
               </div>
             </div>
           </div>

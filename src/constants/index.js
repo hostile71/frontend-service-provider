@@ -53,7 +53,7 @@ export const MENU_ITEMS = [
       { id: 'service-list', labelKey: 'allServices', icon: Briefcase, path: '/services' },
       { id: 'categories', labelKey: 'categories', icon: Package, path: '/categories' },
       { id: 'subcategories', labelKey: 'subcategories', icon: Package, path: '/subcategories' },
-      // { id: 'service-requests', labelKey: 'serviceRequests', icon: FileText, path: 'service-requests' }
+      { id: 'promotion-list', labelKey: 'allPromotions', icon: FileText, path: '/promotions' }
     ]
   },
   {

@@ -8,6 +8,7 @@ export { default as authService } from './auth.service';
 export { default as userService } from './user.service';
 export { default as categoryService } from './category.service';
 export { default as serviceService } from './service.service';
+export { default as promotionService } from './promotion.service';
 export { default as subcategoryService } from './subcategory.service';
 export { default as roleService } from './role.service';
 export { default as bookingService } from './booking.service';

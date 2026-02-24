@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Calendar, MapPin, DollarSign, Star, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { X, User, Calendar, MapPin, DollarSign, Star, CheckCircle, Clock, AlertCircle, Percent } from 'lucide-react';
 import { useLocalization } from '../../contexts/LocalizationContext';
 import StatusBadge from './StatusBadge';
 import RatingStars from './RatingStars';
@@ -38,6 +38,8 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
         return `${t('serviceProvider')} Details`;
       case 'service':
         return `${t('serviceName')} Details`;
+      case 'promotion':
+        return `Promotion Details`;
       case 'booking':
         return `Booking Details`;
       case 'category':
@@ -805,6 +807,102 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
     </div>
   );
 
+  const renderPromotionDetails = () => {
+    const formatDate = (dateString) => {
+      if (!dateString) return '-';
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString(currentLanguage === 'ar' ? 'ar-SA' : 'en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } catch (e) {
+        return dateString;
+      }
+    };
+
+    const isExpired = fetchedItem.expired_at && new Date(fetchedItem.expired_at) < new Date();
+    const isActive = fetchedItem.is_active === 1 || fetchedItem.is_active === true || fetchedItem.is_active === 'true';
+
+    return (
+      <div className="space-y-3">
+        {/* Main Details - Combined */}
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-500\">Title</label>
+              <p className="text-gray-900 font-semibold text-sm">{fetchedItem.title || '-'}</p>
+            </div>
+            {fetchedItem.subtitle && (
+              <div>
+                <label className="text-xs font-medium text-gray-500">Subtitle</label>
+                <p className="text-gray-900 text-sm">{fetchedItem.subtitle}</p>
+              </div>
+            )}
+            <div>
+              <label className="text-xs font-medium text-gray-500">Status</label>
+              <div className="mt-1">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                  isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {isActive ? '✓ Active' : '✗ Inactive'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Description - Compact */}
+        {fetchedItem.subtext && (
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-gray-900 text-sm">{fetchedItem.subtext}</p>
+          </div>
+        )}
+
+        {/* Discount & Validity Combined */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Discount Percentage */}
+          <div className="bg-green-50 p-3 rounded-lg text-center">
+            <p className="text-2xl font-bold text-green-600">{fetchedItem.percentage || 0}%</p>
+            <p className="text-xs text-gray-600">Discount</p>
+          </div>
+
+          {/* Max Amount */}
+          {fetchedItem.max_amount && (
+            <div className="bg-blue-50 p-3 rounded-lg text-center">
+              <p className="text-lg font-bold text-blue-600">{fetchedItem.max_amount} OMR</p>
+              <p className="text-xs text-gray-600">Max Amount</p>
+            </div>
+          )}
+
+          {/* Expiry Date */}
+          <div className={`p-3 rounded-lg text-center ${isExpired ? 'bg-red-50' : 'bg-yellow-50'}`}>
+            <p className={`text-sm font-semibold ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
+              {formatDate(fetchedItem.expired_at)}
+            </p>
+            <p className="text-xs text-gray-600">Expiry Date</p>
+            {isExpired && <p className="text-xs text-red-600 mt-0.5">⚠️ Expired</p>}
+          </div>
+        </div>
+
+        {/* Timestamps - Compact */}
+        {(fetchedItem.created_at || fetchedItem.updated_at) && (
+          <div className="bg-gray-100 p-2 rounded-lg">
+            <div className="flex justify-between text-xs">
+              {fetchedItem.created_at && (
+                <span className="text-gray-600">Created: <span className="text-gray-900 font-medium">{formatDate(fetchedItem.created_at)}</span></span>
+              )}
+              {fetchedItem.updated_at && (
+                <span className="text-gray-600">Updated: <span className="text-gray-900 font-medium">{formatDate(fetchedItem.updated_at)}</span></span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderSubcategoryDetails = () => (
     <div className="space-y-6">
       {/* Subcategory Information */}
@@ -889,6 +987,8 @@ const DetailViewModal = ({ isOpen, onClose, item, type }) => {
         return renderUserDetails();
       case 'service':
         return renderServiceDetails();
+      case 'promotion':
+        return renderPromotionDetails();
       case 'booking':
         return renderBookingDetails();
       case 'payment':
