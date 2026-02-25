@@ -100,7 +100,7 @@ const NotificationBell = () => {
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute ${isRTL ? 'right-0' : 'left-0'} mt-2 w-80 bg-white rounded-lg shadow-xl 
+          className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-72 sm:w-80 md:w-96 bg-white rounded-lg shadow-xl 
                        border border-gray-200 z-50 max-h-96 overflow-y-auto`}
         >
           {/* Header */}
